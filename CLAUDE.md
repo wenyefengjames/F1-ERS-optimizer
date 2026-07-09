@@ -1,24 +1,26 @@
-
-
 # Project: F1 Battery Deployment Optimizer
 
 ## Goal
 A C++ project simulating and optimizing battery (MGU-K) deployment across a lap,
 targeting 2026 F1 regulations. Built to strengthen my CV for Red Bull (CFD Software
-Engineering) and Alpine (Software Engineering placement) applications.
+Engineering) and Alpine (Software Engineering placement) applications. We are only focusing on the silverstone race track for this software for now. If there is time more tracks can be added in the future. Isn't a priority for now
 
 ## Domain context — 2026 F1 power unit regulations
-- Battery: 4MJ usable energy cap at any time. No MGU-H — MGU-K only (simpler
-  single source/sink energy balance vs. the old car).
-- MGU-K: 350kW deploy and recover (up from 120kW previously).
-- Deployment: up to 4MJ bursts (~11.5s at full power), multiple deployments per
-  lap allowed if battery supports it (old rules allowed one deployment window/lap).
-- Harvest per lap: track-dependent, roughly 5MJ (energy-poor, e.g. Monza) to
-  9MJ (energy-rich, e.g. Monaco/Hungary).
-- Deployment tapers above 290km/h, hits zero at 355km/h (leading car). A
-  following car within 1s gets MGU-K Override: full 350kW up to 337km/h.
+- Battery: has a maximum charge of 4MJ usable energy cap at any time. No MGU-H — MGU-K only (simpler single source/sink energy balance vs. the old car).
+- MGU-K: Maximum rate of deploy and recover capped at 350kW (up from 120kW previously).
+- Deployment: up to 4MJ bursts per deployment(~11.5s at full power), multiple deployments per lap allowed if battery supports it (old rules allowed one deployment window/lap). Deployment tapers above 290km/h, hits zero at 355km/h (leading car). A following car within 1s gets MOM, which allows full 350kW up to 337km/h.
+- Harvest per lap (Silverstone, 2026 British GP): regulated per-session cap,
+  not a physical estimate — qualifying ≈ 6.5MJ, race ≈ 8.0MJ. Qualifying is the
+  circuit-sensitive number (FIA cuts it per-event when a track doesn't offer
+  enough natural braking energy); race stays close to a flat ~8MJ baseline
+  across circuits. Model these as two separate input parameters
+  (qualifying_harvest_cap_MJ / race_harvest_cap_MJ), not one shared constant.
 - Harvest methods: braking, partial throttle, coasting, "superclipping"
-  (diverting engine power to battery at full throttle, capped 250kW).
+  (diverting engine power to battery at full throttle). Cap: 350kW as of the
+  Miami GP mid-season update (was 250kW at season start).
+- Harvesting value assumptions(unverifiable estimates): heavy breaking ≈ 250-350kW, coasting ≈ 50-200kW, partial throttle ≈ 50-200kW, superclipping ≈ 250-350kW.
+- 1hp = 0.7457kW
+
 
 ## Target circuit: Silverstone
 Chosen deliberately — few heavy braking zones (long, fast, flowing corners like
@@ -78,6 +80,6 @@ Act as a senior engineer doing code review, not as an implementer:
 - [ ] Project skeleton (CMake + Ninja building)
 - [ ] Segment data model + unit tests
 - [ ] Battery state model
-- [ ] DP optimizer core
+- [ ] DP optimizer core, consider how to optimize recharge, how much hp goes to superclipping etc..
 - [ ] Qualifying mode
 - [ ] Race mode (multi-lap)
