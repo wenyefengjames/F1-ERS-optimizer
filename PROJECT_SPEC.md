@@ -30,6 +30,14 @@ We can break down any track into X different cases: straights, slow-corners, fas
 - For a long straight after a corner. Grip isn't the limiting factor anymore, the entry speed to the straight would be the same as the exit speed of the corner. This is where we need to worry about deployment and harvesting. The obvious choice here is to deploy at the start of the straight, then harvest at the end of the straight. When, and how much to deploy/harvest at the start/end of the straight will be a choice to make. The methods to recharge here is through superclipping, as the driver need to full throttle here, but how much to superclip is a decision to make. 
 - For other types of corners, like high speed corners, the main harvesting methods are partial throttle and lift-and-coast. Then the amount that we could harvest here would depend on how much the driver lifts and how much of the throttle the driver doesn't need. Throttle percentages might be a thing to consider as well. 
 
+Definition for straight: places where the driver can keep at 100% throttle. However this can vary lap by lap. So for simplification sake, we will pick a point at the exit of a corner where the driver will most likely to be 100% on throttle, without worrying about grip.
+
+Choices of how to harvest on straights: For now, we assume the driver deploys, then harvests. We just need to determine how long to deploy for, and a % on how much to deploy, and a % on how much to harvest. In the future we can make this model more complex. For example, the deployment/harvesting over a straight can be a 2D graph with x-axis as time, and y-axis as % on deployment/harvest. Harvesting will have positive % and deployment will have negative %. And this can vary every millisecond. Also, my DP optimizer cannot work on continous data. Therefore this simplification is needed.
+
+Definition for corners: places where the driver cannot keep at 100% throttle. 
+
+Choices of how to harvest in corners: For now, we harvest everything in braking, no deployment needed because grip is the limiting factor. When lifting and coasting, all power from engine goes to harvesting. When partial throttle, the % of throttle not used from the engine will go to harvesting. However, that will be too complex for the prototype, so for now we won't record the throttle position. Instead, we use the difference between entry speed and apex minimum speed to calculate how much to slow down.
+
 Therefore, the information of Segment of Straight needs: length, 
 
 A corner's apex speed is grip-limited — a fixed physical maximum determined by the car's mechanical and aero grip, not something battery deployment strategy can change. Deploying more energy doesn't let you corner faster; it only affects acceleration and top speed on straights. Therefore:
