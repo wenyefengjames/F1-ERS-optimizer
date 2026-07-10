@@ -83,3 +83,6 @@ Act as a senior engineer doing code review, not as an implementer:
 - [ ] DP optimizer core, consider how to optimize recharge, how much hp goes to superclipping etc..
 - [ ] Qualifying mode
 - [ ] Race mode (multi-lap)
+
+## MVP (ie the core prototype after 9 days)
+a CLI that takes no arguments (or minimal ones), builds the Silverstone segment list internally, runs the DP(or whatever optimization algorithm I make) for qualifying mode and race mode, and prints something like a per-segment table showing battery level and deployment decision, the change in delta when we decide to deploy/recharge at each segment, and total lap time — ideally alongside a naive baseline that we can compare to (e.g. "always deploy fully when possible", "never deploys", or "deploys the same amount in every segment") so the DP's improvement is visible and quantifiable, and we can compare the overall improvement in delta as well. 
