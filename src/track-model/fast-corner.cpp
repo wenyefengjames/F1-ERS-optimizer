@@ -1,4 +1,4 @@
-#include "fast-corner.h"
+#include "../../include/fast-corner.h"
 
 FastCorner::FastCorner(std::string name, double length, double time, double apex_min_speed, 
                       double exit_speed, double throttle_percentage) 

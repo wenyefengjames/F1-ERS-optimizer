@@ -1,4 +1,4 @@
-#include "segment.h"
+#include "../../include/segment.h"
 
 Segment::Segment(std::string name, std::string type, double length, double time)
                 : name(std::move(name)), type(std::move(type)), time(time), length(length){

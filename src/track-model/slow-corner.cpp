@@ -1,4 +1,4 @@
-#include "slow-corner.h"
+#include "../../include/slow-corner.h"
 
 SlowCorner::SlowCorner(std::string name, double length, double time, double apex_min_speed, 
                       double exit_speed, double throttle_percentage) 

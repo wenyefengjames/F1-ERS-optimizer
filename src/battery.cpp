@@ -1,4 +1,4 @@
-#include "battery.h"
+#include "../include/battery.h"
 #include <algorithm>
 
 Battery::Battery(double battery_charge, double harvest_charge, bool race_mode){
