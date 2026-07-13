@@ -10,7 +10,6 @@ class Battery {
         const double qualifying_harvest_limit = 6.0;  // Maximum energy allowed to harvest in a lap in qualifying, in MJ
         const double race_harvest_limit = 8.5;        // Maximum energy allowed to harvest in a lap in race, in MJ
         const double battery_capacity = 4.0;          // Maximum capacity of battery, in MJ
-        const double max_usage_rate = 350;            // Maximum rate of deployment and harvesting, in kW
 
     public:
         Battery(double battery_charge, double total_harvest, bool race_mode);

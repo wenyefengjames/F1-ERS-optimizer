@@ -71,11 +71,11 @@ bool Battery::get_race_mode(){
 
 // Setters -------------------------------------------------
 void Battery::set_battery(double battery_charge){
-    this->battery_charge = std::min(this->battery_charge + battery_charge, this->battery_capacity);
+    this->battery_charge = std::min(this->battery_charge, this->battery_capacity);
 }
 
 void Battery::set_harvest(double harvest_charge){
-    this->harvest_charge = std::min(this->harvest_charge + harvest_charge, this->harvest_limit);
+    this->harvest_charge = std::min(this->harvest_charge, this->harvest_limit);
 }
 
 

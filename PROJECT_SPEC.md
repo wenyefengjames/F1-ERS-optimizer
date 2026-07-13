@@ -35,3 +35,9 @@ Choices of how to harvest in corners: For now, we harvest everything in braking,
 
 
 Sidenote on CV and application: That comparison number (e.g. "DP-optimized qualifying lap is 0.3s faster than greedy") is genuinely good CV material — it's a concrete, explainable result.
+
+Information about the current 2026 F1 car:
+- weight: 768kg, excluding fuel
+- ICE horsepower: 536hp/400kW
+- MGU-K power: 470hp/350kW
+
