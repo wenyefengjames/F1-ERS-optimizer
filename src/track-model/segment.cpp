@@ -17,4 +17,6 @@ double Segment::get_time() const{
     return this->time;
 }
 
+Segment::~Segment() = default;
+
 

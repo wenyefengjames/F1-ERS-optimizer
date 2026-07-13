@@ -19,5 +19,7 @@ class Segment {
         std::string get_type() const;
         double get_length() const;
         double get_time() const;
+
+        virtual ~Segment();
     
 };
