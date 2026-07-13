@@ -7,14 +7,6 @@ Battery::Battery(double battery_charge, double harvest_charge, bool race_mode){
     set_race_mode(race_mode);
 }
 
-// Harvesting -------------------------------------------------------------------------
-
-// Calculate the amount of energy we can harvest through reaching target speed
-void Battery::braking_harvest(double current_speed, double target_speed, double car_weight){}
-void Battery::coasting_harvest(){}
-void Battery::superclipping(){}
-void Battery::partial_throttle_harvest(double throttle_percentage){}
-
 // Harvest energy to battery
 void Battery::harvest(double new_charge){
     double harvestable_amount;
@@ -60,7 +52,7 @@ void Battery::reset_harvest(){
 // Deployment -------------------------------------------------------------------------
 
 // Deployment the amount of charge given if there is enough charge within the battery
-void Battery::deployment(double deploy_amount){
+void Battery::deploy(double deploy_amount){
     this->battery_charge = std::max(this->battery_charge - deploy_amount, 0.0);
 }
 

@@ -15,11 +15,7 @@ class Battery {
     public:
         Battery(double battery_charge, double total_harvest, bool race_mode);
 
-        // Harvesting methods
-        void braking_harvest(double current_speed, double target_speed, double car_weight); 
-        void coasting_harvest();
-        void superclipping();
-        void partial_throttle_harvest(double throttle_percentage);
+        // Harvest
         void harvest(double new_charge);
 
         // Common utility methods
@@ -29,7 +25,7 @@ class Battery {
         void reset_harvest();
 
         // Deployment
-        void deployment(double deploy_amount);
+        void deploy(double deploy_amount);
 
         // Getters --------------------------------------
         double get_battery_charge();
