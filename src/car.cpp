@@ -1,5 +1,6 @@
 #include "../include/car.h"
 #include <cmath>
+#include <algorithm>
 
 Car::Car(bool race_mode, bool mom) 
         : race_mode(race_mode), mom(mom), battery(4.0, 0.0, race_mode){}
@@ -8,7 +9,8 @@ Car::Car(bool race_mode, bool mom)
 
 // Harvesting energy through breaking, output is in Joules
 double Car::braking_harvest(double target_speed){
-    double energy = (speed - target_speed)/braking_decel * MGU_K * 1000;
+    double energy = (speed - target_speed)/(braking_decel * 3.6) * MGU_K * 1000;
+    battery.harvest(energy);
 
     return energy;
 }
@@ -16,20 +18,28 @@ double Car::braking_harvest(double target_speed){
 // Harvesting through coasting, output is in Joules
 double Car::coasting_harvest(double time){
     double energy = time * MGU_K * 1000;
+    battery.harvest(energy);
 
     return energy;
 }
 
 // Harvesting through superclipping, clip_rate in kW, output in Joules
 double Car::superclipping(double clip_rate, double time){
+
+    clip_rate = std::min(MGU_K, clip_rate);
+
     double energy = time * clip_rate * 1000;
+    battery.harvest(energy);
 
     return energy;
 }
 
 // Harvesting through partial throttle, output is in Joules
 double Car::partial_throttle_harvest(double throttle_percentage, double time){
-    double energy = time * (100 - throttle_percentage) * 0.01 * 400 * 1000;
+
+    double recharge_rate = std::min(MGU_K, (100 - throttle_percentage) * 0.01 * ICE);
+    double energy = time * recharge_rate * 1000;
+    battery.harvest(energy);
 
     return energy;
 }
@@ -37,11 +47,11 @@ double Car::partial_throttle_harvest(double throttle_percentage, double time){
 // Deployment. Input: the amount of time that the MGU-K deploys
 // Output: the change in car speed and its delta compared to the theoretical time.
 double Car::deployment(double time){
-    double r = this->MGU_K;    // The rate of deployment, measured in kW
+    double r = this->MGU_K;         // The rate of deployment, measured in kW
     double energy = time * r * 1000;// Total energy deployed, measured in J
     double d;                       // Distance travelled during deployment
     double v = this->speed / 3.6;   // Current speed in m/s
-    int m = this->mass;
+    double m = this->mass;
 
     this->battery.deploy(energy/1000000);
     this->speed = ke_to_speed(energy);

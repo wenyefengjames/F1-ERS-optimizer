@@ -18,8 +18,8 @@ void Battery::harvest(double new_charge){
 
         // If new amount of harvest is less than the amount that we can recharge, recharge to the limit
         if(harvestable_amount <= new_charge){            
-            set_battery(harvestable_amount);
-            set_harvest(harvestable_amount);
+            set_battery(this->battery_charge + harvestable_amount);
+            set_harvest(this->battery_charge + harvestable_amount);
 
         } 
         else{
@@ -70,12 +70,12 @@ bool Battery::get_race_mode(){
 }
 
 // Setters -------------------------------------------------
-void Battery::set_battery(double battery_charge){
-    this->battery_charge = std::min(this->battery_charge, this->battery_capacity);
+void Battery::set_battery(double energy){
+    battery_charge = std::min(energy, battery_capacity);
 }
 
-void Battery::set_harvest(double harvest_charge){
-    this->harvest_charge = std::min(this->harvest_charge, this->harvest_limit);
+void Battery::set_harvest(double energy){
+    harvest_charge = std::min(energy, harvest_limit);
 }
 
 

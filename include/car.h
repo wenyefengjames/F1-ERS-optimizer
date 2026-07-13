@@ -4,10 +4,10 @@
 
 class Car {
     private:
-        const int ICE = 400;            // measured in kW, approximatedly 536hp
-        const int mass = 768;           //kg
-        const int MGU_K = 350;          // measured in kW 
-        const int braking_decel = 5.5*9.8;      // meansured in ms^-2
+        const double ICE = 400;            // measured in kW, approximatedly 536hp
+        const double mass = 768;           //kg
+        const double MGU_K = 350;          // measured in kW 
+        const double braking_decel = 5.5*9.8;      // meansured in ms^-2
         bool race_mode;
         bool mom;
         double speed = 0.0;
