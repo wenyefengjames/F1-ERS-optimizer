@@ -4,22 +4,34 @@
 Car::Car(bool race_mode, bool mom) 
         : race_mode(race_mode), mom(mom), battery(4.0, 0.0, race_mode){}
 
-// Harvesting methods
+// Harvesting methods ------------------------------------------------
+
+// Harvesting energy through breaking, output is in Joules
 double Car::braking_harvest(double target_speed){
-    //TO DO
-    return 0.0;
+    double energy = (speed - target_speed)/braking_decel * MGU_K * 1000;
+
+    return energy;
 }
-double Car::coasting_harvest(){
-    //TO DO
-    return 0.0;
+
+// Harvesting through coasting, output is in Joules
+double Car::coasting_harvest(double time){
+    double energy = time * MGU_K * 1000;
+
+    return energy;
 }
-double Car::superclipping(){
-    //TO DO
-    return 0.0;
+
+// Harvesting through superclipping, clip_rate in kW, output in Joules
+double Car::superclipping(double clip_rate, double time){
+    double energy = time * clip_rate * 1000;
+
+    return energy;
 }
-double Car::partial_throttle_harvest(double throttle_percentage){
-    //TO DO
-    return 0.0;
+
+// Harvesting through partial throttle, output is in Joules
+double Car::partial_throttle_harvest(double throttle_percentage, double time){
+    double energy = time * (100 - throttle_percentage) * 0.01 * 400 * 1000;
+
+    return energy;
 }
 
 // Deployment. Input: the amount of time that the MGU-K deploys

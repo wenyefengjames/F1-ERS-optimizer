@@ -4,10 +4,10 @@
 
 class Car {
     private:
-        const int ICE = 400;        // measured in kW, approximatedly 536hp
-        const int mass = 768;       //kg
-        const int MGU_K = 350;      // measured in kW
-        const int braking_force = 0;
+        const int ICE = 400;            // measured in kW, approximatedly 536hp
+        const int mass = 768;           //kg
+        const int MGU_K = 350;          // measured in kW 
+        const int braking_decel = 5.5*9.8;      // meansured in ms^-2
         bool race_mode;
         bool mom;
         double speed = 0.0;
@@ -19,9 +19,9 @@ class Car {
 
         // Harvesting methods
         double braking_harvest(double target_speed); 
-        double coasting_harvest();
-        double superclipping();
-        double partial_throttle_harvest(double throttle_percentage);
+        double coasting_harvest(double time);
+        double superclipping(double clip_rate, double time);
+        double partial_throttle_harvest(double throttle_percentage, double time);
 
         // Deployment
         double deployment(double energy);
