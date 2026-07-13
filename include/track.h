@@ -1,7 +1,7 @@
 #pragma once
-#include "../../include/fast-corner.h"
-#include "../../include/slow-corner.h"
-#include "../../include/straight.h"
+#include "fast-corner.h"
+#include "slow-corner.h"
+#include "straight.h"
 #include <memory>
 #include <vector>
 
