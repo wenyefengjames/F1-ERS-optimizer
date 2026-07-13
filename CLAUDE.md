@@ -8,7 +8,7 @@ Engineering) and Alpine (Software Engineering placement) applications. We are on
 ## Domain context — 2026 F1 power unit regulations
 - Battery: has a maximum charge of 4MJ usable energy cap at any time. No MGU-H — MGU-K only (simpler single source/sink energy balance vs. the old car).
 - MGU-K: Maximum rate of deploy and recover capped at 350kW (up from 120kW previously).
-- Deployment: up to 4MJ bursts per deployment(~11.5s at full power), multiple deployments per lap allowed if battery supports it (old rules allowed one deployment window/lap). Deployment tapers above 290km/h, hits zero at 355km/h (leading car). A following car within 1s gets MOM, which allows full 350kW up to 337km/h.
+- Deployment: up to 4MJ bursts per deployment(~11.5s at full power), multiple deployments per lap allowed if battery supports it (old rules allowed one deployment window/lap). Deployment tapers above 290km/h, hits zero at 355km/h (leading car). A following car within 1s gets MOM, which allows full 350kW up to 337km/h. Note: there are no publicly confirmed taper curve shape, so we assume as linear interpolation. 
 - Harvest per lap (Silverstone, 2026 British GP): regulated per-session cap,
   not a physical estimate — qualifying ≈ 6.5MJ, race ≈ 8.0MJ. Qualifying is the
   circuit-sensitive number (FIA cuts it per-event when a track doesn't offer
@@ -29,9 +29,14 @@ energy management a genuinely tight, interesting problem rather than a simple
 "brake a lot, deploy on straights" model.
 
 ## Core approach
-- Lap modeled as a sequence of discrete track segments (straight/corner/braking),
-  each with distance and estimated energy demand/harvest potential.
+- Lap modeled as a sequence of discrete track segments (straight/slow corner/fast corner),
+  each with a distance, time. Corners have apex-speed, exit-speed, throttle attibutes to estimate laptime and energy demand/harvest potential.
 - Battery state modeled with the real constraints above.
+- Car and Battery are split into two classes: `Battery` owns charge state, the
+  per-lap harvest limit, and the race/qualifying mode switch; `Car` owns
+  physical constants (ICE/MGU-K power, mass) and the deployment physics
+  (taper curve, kinetic-energy↔speed conversion), and holds a `Battery` as a
+  member.
 - Optimizer: dynamic programming over discretized battery states (~0.1MJ steps)
   across segments — backward induction to find minimum lap time per
   (segment, battery-level) pair.
@@ -61,6 +66,8 @@ energy management a genuinely tight, interesting problem rather than a simple
 - Build: CMake + Ninja
 - Compiler: GCC 14.2.0 (Windows)
 - Language standard: C++20
+- header/.h files live in include/, source/.cpp files live in src/
+- In Car class, physics work in Joules. In Battery class, energy is stored as MJ
 - Testing: not yet decided — Catch2 or Google Test
 - Later: FastF1 (Python) for data, pybind11 for C++/Python bridge (tentative),
   GitHub Actions for CI, Docker
@@ -77,9 +84,10 @@ Act as a senior engineer doing code review, not as an implementer:
 
 ## Progress log
 (Keep this updated — what's actually built, not just planned)
-- [ ] Project skeleton (CMake + Ninja building)
-- [ ] Segment data model + unit tests
-- [ ] Battery state model
+- [x] Project skeleton (CMake + Ninja building)
+- [x] Segment data model (Segment base + Straight/SlowCorner/FastCorner) — unit tests still pending
+- [x] Battery state model
+- [x] Car / physics model — ICE/MGU-K/mass constants, deployment, taper curve, kinetic-energy↔speed conversion. Harvesting methods (braking/coasting/superclip/partial-throttle) still stubbed
 - [ ] DP optimizer core, consider how to optimize recharge, how much hp goes to superclipping etc..
 - [ ] Qualifying mode
 - [ ] Race mode (multi-lap)

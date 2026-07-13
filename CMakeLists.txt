@@ -12,6 +12,8 @@ add_executable(ERSOptimizer
     src/track-model/fast-corner.cpp
     src/track-model/slow-corner.cpp
     src/track-model/straight.cpp
+    src/battery.cpp
+    src/car.cpp
 )
 
 set_target_properties(ERSOptimizer PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin" )

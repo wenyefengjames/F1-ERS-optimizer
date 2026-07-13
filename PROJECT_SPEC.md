@@ -38,6 +38,6 @@ Sidenote on CV and application: That comparison number (e.g. "DP-optimized quali
 
 Information about the current 2026 F1 car:
 - weight: 768kg, excluding fuel
-- ICE horsepower: 536hp/400kW
+- ICE power: 536hp/400kW
 - MGU-K power: 470hp/350kW
 
