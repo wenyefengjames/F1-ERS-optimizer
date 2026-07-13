@@ -9,10 +9,19 @@ class Track{
 
     private:
         std::vector<std::unique_ptr<Segment>> track;
+        int index = 0;
 
     public:
 
-        Track();
+        Track();                // Initiallizes the track and builds the Silverstone circuit
+        Segment* begin();       // The beginning segment of the track
+        Segment* end();         // The ending segment of the track
+        Segment* next();        // The next segment of the track
+        Segment* prev();        // The previous segment of the track
+        void incre();           // Move to the next segment
+        void decre();           // Move to previous next segment
+        void reset();           // Reset to the first segment
+
 
 
 };

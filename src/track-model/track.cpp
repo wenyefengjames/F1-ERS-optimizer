@@ -1,5 +1,6 @@
 #include "../../include/track.h"
 
+// Initiallizes the track and builds the Silverstone circuit
 Track::Track(){
     track.push_back(std::make_unique<Straight>("Hamilton Straight", 458, 0.0));
     track.push_back(std::make_unique<FastCorner>("Abbey, Turn 1", 0.0, 0.0, 300, 300, 100));
@@ -18,6 +19,40 @@ Track::Track(){
     track.push_back(std::make_unique<Straight>("Vale straight", 286, 0.0));
     track.push_back(std::make_unique<SlowCorner>("Turn 16 - 18", 0.0, 9.24, 102, 241, 100));
 }
-        
+
+// The beginning segment of the track
+Segment* Track::begin(){
+    return track.at(0).get();
+}
+
+// The ending segment of the track
+Segment* Track::end(){
+    return track.at(track.size() - 1).get();
+}
+
+// The next segment of the track
+Segment* Track::next(){
+    return track.at((index + 1) % track.size()).get();
+}
+
+// The previous segment of the track
+Segment* Track::prev(){
+    return track.at((index + track.size() - 1) % track.size()).get();
+}
+
+// Move to the next segment
+void Track::incre(){
+    index = (index + 1) % track.size();
+}
+
+// Move to previous next segment
+void Track::decre(){
+    index = (index + track.size() - 1) % track.size();
+}
+
+// Reset to the first segment
+void Track::reset(){
+    index = 0;
+}
 
 
