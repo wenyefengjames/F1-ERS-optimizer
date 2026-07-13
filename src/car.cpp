@@ -34,11 +34,11 @@ double Car::deployment(double time){
     this->battery.deploy(energy/1000000);
     this->speed = ke_to_speed(energy);
 
-    d = (m/3.0*r) * std::pow((v*v + 2.0 * r * time / m), 3.0/2.0);
+    d = (m/3.0*r) * (std::pow((v*v + 2.0 * r * time / m), 3.0/2.0) - pow(v,3));
     r = this->ICE * 1000;
 
     // time taken if no deployment to travel the same distance
-    double s = (m/2.0*r) * (pow(3.0*r*d/m, 2.0/3.0) - v*v); 
+    double s = (m/2.0*r) * (pow(3.0*r*d/m + pow(v,3), 2.0/3.0) - v*v); 
 
     this->delta += s - time; // Change in time
 
