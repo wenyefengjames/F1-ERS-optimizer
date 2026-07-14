@@ -49,7 +49,6 @@ def dis(vi,w,r):
 
     return x
 
-
 txt = ""
 
 
