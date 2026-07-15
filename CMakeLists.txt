@@ -15,6 +15,7 @@ add_executable(ERSOptimizer
     src/battery.cpp
     src/car.cpp
     src/optimizer.cpp
+    src/physics.cpp
 )
 
 set_target_properties(ERSOptimizer PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin" )

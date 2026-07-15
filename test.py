@@ -72,7 +72,7 @@ def dis(vi,w,r):
     k = 0.5 * rou * CdA
     r = r*1000
 
-    x = (-mass/3*k) * math.log((r/k - (vi**2 + 2*w/mass)**1.5) / (r/k - vi**3))
+    x = (-mass/(3*k)) * math.log((r/k - (vi**2 + 2*w/mass)**1.5) / (r/k - vi**3))
 
     return x
 

@@ -85,9 +85,10 @@ Act as a senior engineer doing code review, not as an implementer:
 ## Progress log
 (Keep this updated — what's actually built, not just planned)
 - [x] Project skeleton (CMake + Ninja building)
-- [x] Segment data model (Segment base + Straight/SlowCorner/FastCorner) — unit tests still pending
+- [x] Segment data model (Segment base + Straight/SlowCorner/FastCorner)
 - [x] Battery state model
-- [x] Car / physics model — ICE/MGU-K/mass constants, deployment, taper curve, kinetic-energy↔speed conversion. Harvesting methods (braking/coasting/superclip/partial-throttle) still stubbed
+- [x] Car / physics model — ICE/MGU-K/mass constants, deployment, taper curve, kinetic-energy↔speed conversion, harvesting methods (braking/coasting/superclip/partial-throttle)
+- [x] Drag-aware physics formulas (physics.h/.cpp) — kinetic energy, work done under power with drag, required power, coasting energy loss, distance-to-recharge, time-to-reach-velocity. Validated in test.py, spot-checked in C++ via physics_check.cpp (not a real test suite — framework TBD, still deferred to the later phase)
 - [ ] DP optimizer core, consider how to optimize recharge, how much hp goes to superclipping etc..
 - [ ] Qualifying mode
 - [ ] Race mode (multi-lap)
