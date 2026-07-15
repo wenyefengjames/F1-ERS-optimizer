@@ -40,10 +40,6 @@ double distance_to_recharge(double initial_speed_kmh, double energy_target_J, do
     double vi = initial_speed_kmh / 3.6;
     double r = power_kW * 1000.0;
 
-    // NOTE: matches test.py's `(-mass/3*k)` exactly, i.e. ((-mass/3)*k), not
-    // (-mass/(3*k)) as the drag-ODE derivation would suggest. Preserved as
-    // translated rather than "corrected" -- flagged for the user to re-verify
-    // against independent test points in test.py.
     double x = (-MASS_KG / (3.0 * DRAG_K))
                 * std::log((r / DRAG_K - std::pow(vi * vi + 2.0 * energy_target_J / MASS_KG, 1.5))
                             / (r / DRAG_K - std::pow(vi, 3.0)));
