@@ -36,5 +36,7 @@ class Optimizer{
         std::vector<Option> segment_options(int seg_index, double initial_battery);
 
         std::vector<Option> straight_to_fast(int seg_index, double initial_battery);
+        std::vector<Option> straight_to_slow(int seg_index, double initial_battery);
+        
 
 };

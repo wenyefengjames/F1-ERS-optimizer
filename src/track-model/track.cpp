@@ -12,8 +12,7 @@ Track::Track(){
     track.push_back(std::make_unique<FastCorner>("Copse, Turn 9", 119, 0.0, 282, 282, 100));
     track.push_back(std::make_unique<Straight>("Turn 9 - Turn 10", 476, 0.0));
     track.push_back(std::make_unique<FastCorner>("Maggots, Turn 11", 143, 0.0, 282, 282, 100));
-    track.push_back(std::make_unique<FastCorner>("Becketts, Turn 12", 119, 0.0, 259, 259, 100));
-    track.push_back(std::make_unique<FastCorner>("Becketts, Turn 13", 143, 0.0, 219, 244, 70));
+    track.push_back(std::make_unique<FastCorner>("Becketts, Turn 12 - 13", 119, 5.1, 271, 244, 65));
     track.push_back(std::make_unique<Straight>("Turn 14 - Hanger Straight", 785, 0.0));
     track.push_back(std::make_unique<SlowCorner>("Stowe, Turn 15", 0.0, 3.37, 236, 249, 100));
     track.push_back(std::make_unique<Straight>("Vale straight", 286, 0.0));
