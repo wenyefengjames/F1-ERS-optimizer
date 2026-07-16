@@ -9,11 +9,21 @@ namespace physics {
     inline constexpr double DRAG_AREA_COEFF = 0.8;         // CdA, m^2
     inline constexpr double AIR_DENSITY = 1.225;           // rho, kg/m^3
     inline constexpr double DRAG_K = 0.5 * AIR_DENSITY * DRAG_AREA_COEFF;
+    inline constexpr double BATTERY_CAPACITY = 4.0;        // MJ
+    inline constexpr double MGU_K = 350;                   // kW
+    inline constexpr double ICE = 400;                     // kW
+    inline constexpr double BRAKING_DECEL = 5.5 * 9.8;     // m/s^-2
 
     // Kinetic energy at a given speed (no drag).
     // Input: speed, in km/h
     // Output: kinetic energy, in Joules
     double kinetic_energy(double speed_kmh);
+
+    // Final speed after adding extra kinetic energy to the car
+    // Input: speed, in km/h
+    //        energy, in Joules 
+    // Output: speed, in km/h
+    double reverse_ke(double initial_speed_kmh, double energy);
 
     // Kinetic energy gained (excludes the car's initial KE) after travelling
     // distance_m at constant engine power, net of drag losses.
@@ -52,4 +62,6 @@ namespace physics {
     //         power_kW - constant engine power, in kW
     // Output: time to reach target_speed_kmh, in seconds
     double time_to_reach_velocity(double target_speed_kmh, double initial_speed_kmh, double power_kW);
+
+
 }

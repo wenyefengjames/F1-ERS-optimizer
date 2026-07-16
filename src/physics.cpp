@@ -8,6 +8,11 @@ double kinetic_energy(double speed_kmh){
     return 0.5 * MASS_KG * speed_ms * speed_ms;
 }
 
+double reverse_ke(double initial_speed_kmh, double energy){
+    double speed_ms = initial_speed_kmh / 3.6;
+    return std::sqrt(speed_ms * speed_ms + 2 * energy / MASS_KG) * 3.6;
+}
+
 double work_done_with_drag(double power_kW, double initial_speed_kmh, double distance_m){
     double r = power_kW * 1000.0;
     double vi = initial_speed_kmh / 3.6;

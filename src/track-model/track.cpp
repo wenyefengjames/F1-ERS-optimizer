@@ -31,13 +31,26 @@ Segment* Track::end(){
 }
 
 // The next segment of the track
+Segment* Track::next(int i){
+    return track.at((i + 1) % track.size()).get();
+}
+
+
 Segment* Track::next(){
     return track.at((index + 1) % track.size()).get();
 }
 
 // The previous segment of the track
+Segment* Track::prev(int i){
+    return track.at((i + track.size() - 1) % track.size()).get();
+}
+
 Segment* Track::prev(){
     return track.at((index + track.size() - 1) % track.size()).get();
+}
+
+Segment*  Track::at(int index){
+    return track.at(index).get();
 }
 
 // Move to the next segment

@@ -2,6 +2,8 @@
 #include <cmath>
 #include <limits>
 
+namespace p = physics;
+
 Optimizer::Optimizer(bool race_mode, bool mom) : race_mode(race_mode), mom(mom){
     table.resize(circuit.size() * battery_buckets * battery_buckets, -1.0);
     choice.resize(circuit.size() * battery_buckets * battery_buckets, std::nullopt);
@@ -45,7 +47,7 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
     
     // This should be a vector of Option struct that gives all the strategy options for
     // the current segment of the race track that we are on. 
-    std::vector<Option> current_segment = segment_options();
+    std::vector<Option> current_segment = segment_options(index, battery.get_battery_charge());
 
     // Main DP loop
     for (const Option& option : current_segment){
@@ -89,8 +91,32 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
 }
 
 // This function will create an array of strategy options for the current segment that we are on
-std::vector<Option> Optimizer::segment_options(){
-    return {};
+// initial_battery should be in MJ
+std::vector<Option> Optimizer::segment_options(int seg_index, double initial_battery){
+
+    std::vector<Option> option_table;
+
+    if (circuit.at(seg_index)->get_type() == "SlowCorner"){
+        int length = circuit.at(seg_index)->get_length();
+        double bucket_size = 0.1;               // In Mj
+        int bucket_num = p::BATTERY_CAPACITY / bucket_size + 1; // 1 for neutral, rest goes to harvesting. Not allowed to deploy
+        double entry_speed = 0.0;
+        double min_speed = 0.0;
+
+    } else if(circuit.at(seg_index)->get_type() == "FastCorner"){
+
+    } else if(circuit.at(seg_index)->get_type() == "Straight"){
+
+        // Treating fast corners and slow corners differently. 
+        if(circuit.next(seg_index)->get_type() == "FastCorner"){
+            return straight_to_fast(seg_index, initial_battery);
+        }
+        else{
+        
+        }        
+
+    }
+    return option_table;
 }
 
 // Reconstruct the path
@@ -115,6 +141,94 @@ std::vector<Option> Optimizer::path_reconstruction(double battery, double ending
     }
 
     return path;
+}
+
+// Producing a vector of Options for a Segment of Straight following with a FastCorner
+std::vector<Option> Optimizer::straight_to_fast(int seg_index, double initial_battery){
+    std::vector<Option> option_table;
+    int length = circuit.at(seg_index)->get_length();
+    int partition_size = 15;
+    double bucket_size = 0.1;         // In Mj
+    int bucket_num = p::BATTERY_CAPACITY / bucket_size * 2 + 1; // 1 for neutral, half of the rest goes to harvesting, other goes to deploy 
+    double exit_speed = 0.0;
+    double target_speed = 0.0;
+    double best_time = std::numeric_limits<double>::infinity();
+    double total_time = std::numeric_limits<double>::infinity();
+
+    // Type checking and casting
+    Segment* prev_segment = circuit.prev(seg_index);
+    if(prev_segment->get_type() == "SlowCorner") {
+        SlowCorner* corner = static_cast<SlowCorner*>(prev_segment);
+        exit_speed = corner->get_exit_speed();
+    }
+    else if(prev_segment->get_type() == "FastCorner"){
+        FastCorner* corner = static_cast<FastCorner*>(prev_segment);
+        exit_speed = corner->get_exit_speed();
+    }
+
+    // Next segment doesnt need to go through checks, because it is definitely a slow corner
+    SlowCorner* corner = static_cast<SlowCorner*>(circuit.next(seg_index));
+    target_speed = corner->get_apex_min_speed();
+
+    for (int energy = 0; energy < bucket_num; energy++){
+        double energy_bucket_J = (energy * bucket_size - p::BATTERY_CAPACITY) * 1000000;
+        double energy_bucket_MJ = energy * bucket_size - p::BATTERY_CAPACITY;
+        best_time = std::numeric_limits<double>::infinity();
+        total_time = std::numeric_limits<double>::infinity();
+
+        // Find the optimal time for the given energy bucket
+        for (int dis = 1; dis < length / partition_size; dis++){
+            int deploy_dis = dis * partition_size;
+            int harvest_dis = length - deploy_dis;
+
+            double ke_gained = p::work_done_with_drag(p::MGU_K + p::ICE, exit_speed, deploy_dis);
+            double speed = p::reverse_ke(exit_speed, ke_gained);
+            double time_deploying = p::time_to_reach_velocity(speed, exit_speed, p::MGU_K + p::ICE);
+
+            double energy_deployed = time_deploying * p::MGU_K * 1000;
+
+            // If the amount of energy deployed is more than what the battery have, break out of this loop
+            // Because the deployment distance will only keep increasing, so the battery wont have enough for distance longer than current
+            if(energy_deployed >= initial_battery * 1000000){
+                break;
+            }
+
+            double ke_diff = p::kinetic_energy(speed) - p::kinetic_energy(target_speed);
+            double engine_power = p::required_power(speed, -ke_diff, harvest_dis);   // in Watts, not kW
+                    
+            // Stop the loop if it requires the engine power output to be less than 0 (meaning it requires breaking)
+            if(engine_power < 0){
+                break;
+            }
+
+            // Limit the range of recharge
+            double recharge_power = p::ICE*1000 - engine_power;
+            if (recharge_power >= p::MGU_K * 1000){
+                recharge_power = p::MGU_K * 1000;
+            }
+            else if (recharge_power <= 0){
+                recharge_power = 0;
+            }
+
+            double time_harvesting = (energy_bucket_J + p::MGU_K*1000 * time_deploying)/(recharge_power);
+                    
+            // Time has to be positive
+            if (time_harvesting <= 0){
+                continue;
+            }
+
+            double energy_harvested = time_harvesting * recharge_power;
+            total_time = time_harvesting + time_deploying;
+
+            // Update best time
+            if (total_time < best_time){
+                best_time = total_time;
+            }
+        }
+
+        Option temp = {energy_bucket_MJ, best_time};
+        option_table.push_back(temp);
+    }
 }
 
 

@@ -105,21 +105,28 @@ def time_to_reach_velocity(v, vi, r):
     rou = 1.225
     k = 0.5 * rou * CdA
     P = r*1000
-    m = mass
+    m = 768
     t0=0
 
     a = (P / k) ** (1.0 / 3.0)  # terminal velocity
+    print("P:",P)
+    print("k:",k)
+    print("a:",a)
 
     def I(vel):
         # antiderivative: (1/k) * [ -1/(3a) * ln|a - vel|
         #                           + 1/(6a) * ln(vel^2 + a*vel + a^2)
         #                           - 1/(a*sqrt(3)) * arctan((2*vel + a) / (a*sqrt(3))) ]
         term1 = -1.0 / (3.0 * a) * math.log(abs(a - vel))
+        print("term1:",term1)
         term2 = 1.0 / (6.0 * a) * math.log(vel**2 + a * vel + a**2)
+        print("term2:",term2)
         term3 = -1.0 / (a * math.sqrt(3)) * math.atan((2.0 * vel + a) / (a * math.sqrt(3)))
+        print("term3:",term3)
         return (1.0 / k) * (term1 + term2 + term3)
 
     t = t0 + m * (I(v) - I(vi))
+
     return t
 
 txt = ""

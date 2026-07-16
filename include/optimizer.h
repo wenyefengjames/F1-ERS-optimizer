@@ -33,6 +33,8 @@ class Optimizer{
         double dp_algorithm(int index, Battery battery, double ending_battery);
         double estimate_deploy_distance();
         std::vector<Option> path_reconstruction(double battery, double ending_battery);
-        std::vector<Option> segment_options();
+        std::vector<Option> segment_options(int seg_index, double initial_battery);
+
+        std::vector<Option> straight_to_fast(int seg_index, double initial_battery);
 
 };
