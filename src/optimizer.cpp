@@ -149,7 +149,7 @@ std::vector<Option> Optimizer::straight_to_fast(int seg_index, double initial_ba
     int length = circuit.at(seg_index)->get_length();
     int partition_size = 15;
     double bucket_size = 0.1;         // In Mj
-    int bucket_num = p::BATTERY_CAPACITY / bucket_size * 2 + 1; // 1 for neutral, half of the rest goes to harvesting, other goes to deploy 
+    int bucket_num = std::round(p::BATTERY_CAPACITY / bucket_size * 2 + 1); // 1 for neutral, half of the rest goes to harvesting, other goes to deploy 
     double exit_speed = 0.0;
     double target_speed = 0.0;
     double best_time = std::numeric_limits<double>::infinity();
@@ -166,8 +166,8 @@ std::vector<Option> Optimizer::straight_to_fast(int seg_index, double initial_ba
         exit_speed = corner->get_exit_speed();
     }
 
-    // Next segment doesnt need to go through checks, because it is definitely a slow corner
-    SlowCorner* corner = static_cast<SlowCorner*>(circuit.next(seg_index));
+    // Next segment doesnt need to go through checks, because it is definitely a fast corner
+    FastCorner* corner = static_cast<FastCorner*>(circuit.next(seg_index));
     target_speed = corner->get_apex_min_speed();
 
     for (int energy = 0; energy < bucket_num; energy++){
@@ -177,7 +177,7 @@ std::vector<Option> Optimizer::straight_to_fast(int seg_index, double initial_ba
         total_time = std::numeric_limits<double>::infinity();
 
         // Find the optimal time for the given energy bucket
-        for (int dis = 1; dis < length / partition_size; dis++){
+        for (int dis = 0; dis < length / partition_size; dis++){
             int deploy_dis = dis * partition_size;
             int harvest_dis = length - deploy_dis;
 
@@ -229,6 +229,8 @@ std::vector<Option> Optimizer::straight_to_fast(int seg_index, double initial_ba
         Option temp = {energy_bucket_MJ, best_time};
         option_table.push_back(temp);
     }
+
+    return option_table;
 }
 
 
