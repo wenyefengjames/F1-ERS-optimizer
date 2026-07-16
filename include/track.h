@@ -21,6 +21,7 @@ class Track{
         void incre();           // Move to the next segment
         void decre();           // Move to previous next segment
         void reset();           // Reset to the first segment
+        int size();
 
 
 

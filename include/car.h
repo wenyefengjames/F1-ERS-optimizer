@@ -33,6 +33,11 @@ class Car {
 
         double drag();
 
+        // Getters
+        Battery get_battery();
+
+        // Setters
+
 
 
 

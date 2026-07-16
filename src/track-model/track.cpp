@@ -55,4 +55,9 @@ void Track::reset(){
     index = 0;
 }
 
+// Return the number of segments in the track
+int Track::size(){
+    return track.size();
+}
+
 

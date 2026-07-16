@@ -94,4 +94,29 @@ void Battery::set_race_mode(bool new_mode){
     this->race_mode = new_mode;
 }
 
+// Gives a check if rechargin this much will hit a ceiling
+bool Battery::check_allow_charge(double charge){
+    if (charge > 0){
+        if (charge + battery_charge <= battery_capacity && charge + harvest_charge <= harvest_limit){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+    else{
+        if (charge + battery_charge >= 0){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+
+}
+
+// Returns how much charge can be recharged
+double Battery::avaliable_charge(){
+    return std::min(battery_capacity - battery_charge, harvest_limit-harvest_charge);
+}
 

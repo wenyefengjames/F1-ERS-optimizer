@@ -101,3 +101,8 @@ double Car::ke_to_speed(double energy){
 
     return new_speed * 3.6; // Convert m/s into km/h
 } 
+
+
+Battery Car::get_battery(){
+    return battery;
+}
