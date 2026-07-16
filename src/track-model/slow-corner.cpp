@@ -19,3 +19,7 @@ double SlowCorner::get_exit_speed() const{
 double SlowCorner::get_throttle_percentage() const{
     return this->throttle_percentage;
 }
+
+double SlowCorner::get_entry_speed() const{
+    return this->entry_speed;
+}

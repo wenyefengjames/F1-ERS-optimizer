@@ -19,5 +19,6 @@ class SlowCorner : public Segment{
         double get_apex_min_speed() const;
         double get_exit_speed() const;
         double get_throttle_percentage() const;
+        double get_entry_speed() const;
     
 };
