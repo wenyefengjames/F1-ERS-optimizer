@@ -1,6 +1,7 @@
 #include "../include/optimizer.h"
 #include <cmath>
 #include <limits>
+#include <algorithm>
 
 namespace p = physics;
 
@@ -89,17 +90,113 @@ std::vector<Option> Optimizer::segment_options(int seg_index, double initial_bat
     std::vector<Option> option_table;    
 
     if (circuit.at(seg_index)->get_type() == "SlowCorner"){
-        int length = circuit.at(seg_index)->get_length();
-        int bucket_num = std::round(p::BATTERY_CAPACITY / bucket_size + 1); // 1 for neutral, rest goes to harvesting. Not allowed to deploy
-        double entry_speed = 0.0;
-        double min_speed = 0.0;
 
-    } else if(circuit.at(seg_index)->get_type() == "FastCorner"){
+        return option_table_slowcorner(seg_index);
+    } 
+    else if(circuit.at(seg_index)->get_type() == "FastCorner"){
 
-    } else if(circuit.at(seg_index)->get_type() == "Straight"){
+        return option_table_fastcorner(seg_index, initial_battery); 
+    } 
+    else if(circuit.at(seg_index)->get_type() == "Straight"){
 
         return option_table_straight(seg_index, initial_battery);      
     }
+    return option_table;
+}
+
+// Produces the option table for a fast corner
+// The output should only have one entry, the energy can be both deploy or harvest
+std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double initial_battery){
+
+    // No type check, because this function should only be called on a fast corner
+    FastCorner* corner = static_cast<FastCorner*>(circuit.at(seg_index));
+    std::vector<Option> option_table;
+    double current_speed = corner->get_apex_min_speed();
+    double target_speed = 0.0;
+    double length = corner->get_length() * 0.5;
+    
+    // Extract the target speed and length of the next segment, fast and slow corners are different here
+    Segment* next_segment = circuit.next(seg_index);
+    if(next_segment->get_type() == "SlowCorner") {
+        SlowCorner* next_corner = static_cast<SlowCorner*>(next_segment);
+        target_speed = next_corner->get_entry_speed();
+    }
+    else if(next_segment->get_type() == "FastCorner"){
+        FastCorner* next_corner = static_cast<FastCorner*>(next_segment);
+        target_speed = next_corner->get_apex_min_speed();
+
+        // Assumption that the apex of the next corner is at exactly half way of the corner
+        // Which is where the apex_min_speed lies
+        length += next_corner->get_length() * 0.5;
+    }
+    else if (next_segment->get_type() == "Straight") {
+        target_speed = corner->get_exit_speed();
+    }
+
+    const double ke_gain = p::kinetic_energy(target_speed) - p::kinetic_energy(current_speed);
+    const double power_output = p::required_power(current_speed, ke_gain, length) / 1000;
+
+    // Indicates that the car needs braking, which should never happen
+    if (power_output < 0){
+        option_table.clear();
+        return option_table;
+    }
+
+    const double time = p::time_to_reach_velocity(target_speed, current_speed, power_output);
+
+    const double recharge_rating = std::clamp(p::ICE - power_output, -p::MGU_K, p::MGU_K);
+
+    const double harvest_energy = recharge_rating * 1000 * time;
+
+    // The amount of energy in battery can be less than what we need
+    // TO DO. Deal with this later because this will affect the fixed exit speed
+    // For now we set the time to infinity
+    if(initial_battery < -harvest_energy){
+        Option temp = {harvest_energy / 1000000, std::numeric_limits<double>::infinity()};
+        option_table.push_back(temp);
+    }
+    else{
+        Option temp = {harvest_energy / 1000000, time};
+        option_table.push_back(temp);
+    }
+
+    return option_table;
+}
+
+std::vector<Option> Optimizer::option_table_slowcorner(int seg_index){
+    
+    // No type check here, because this function should only be called for a slow corner
+    SlowCorner* corner = static_cast<SlowCorner*>(circuit.at(seg_index));
+    std::vector<Option> option_table;
+
+    const double entry_speed = corner->get_entry_speed();
+    const double min_speed = corner->get_apex_min_speed();
+    const double corner_duration = corner->get_time();
+    const double throttle_percentage = corner->get_throttle_percentage() * 0.01;
+
+    const double braking_duration = (entry_speed - min_speed) / (p::BRAKING_DECEL * 3.6);
+    const double braking_energy = braking_duration * p::MGU_K * 1000;
+    const double partial_throttle_duration = corner_duration - braking_duration;
+    double recharge_rating = (1.0 - throttle_percentage) * p::ICE;
+
+    // Cap the recharge rate, in kW
+    if (recharge_rating >= p::MGU_K) recharge_rating = p::MGU_K;
+
+    const double partial_throttle_energy = partial_throttle_duration * recharge_rating * 1000;
+    const double harvest_energy = partial_throttle_energy + braking_energy;
+
+    // Capped at the total harvestable energy, not allowed to deploy
+    const int bucket_num = std::floor(harvest_energy / (bucket_size * 1000000) + 1);
+
+    // Option table generating loop
+    for (int energy = 0; energy < bucket_num; energy++){
+        const double energy_bucket_MJ = energy * bucket_size;
+
+        // The delta is invariant to deployment, can't deploy energy as grip is limitation
+        Option temp = {energy_bucket_MJ, corner_duration};
+        option_table.push_back(temp);
+    }
+
     return option_table;
 }
 
