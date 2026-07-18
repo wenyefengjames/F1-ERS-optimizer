@@ -1,5 +1,6 @@
 #include <iostream>
-#include <optimizer.h>
+#include "optimizer.h"
+#include <string>
 
 int main() {
     
@@ -7,6 +8,7 @@ int main() {
     std::string mom_input;
     bool race_mode = false;
     bool mom = false;
+    double laptime = 0.0;
 
     std::cout << "ERS Optimizer Program" << std::endl;
     std::cout << "Enter 'race' or 'qualify' to choose mode: ";
@@ -21,13 +23,15 @@ int main() {
         mom = true;
     }
 
-    Optimizer ems = Optimizer(race_mode, mom);
+    Optimizer ems(race_mode, mom);
     if(race_mode){ // long distance
-        ems.main_optimizing_loop(0.0, 4.0, 4.0);
+        laptime =  ems.main_optimizing_loop(0, 4.0, 3.5);
     }
     else{ // qualifying
-        ems.main_optimizing_loop(0.0, 4.0, 0);
+        laptime = ems.main_optimizing_loop(0, 4.0, 0);
     }
+
+    std::cout << "Best lap time: " << laptime << '\n';
 
     return 0;
 }
