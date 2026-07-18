@@ -7,7 +7,8 @@
 
 // This struct holds the value pair of battery cost with respect to delta time
 struct Option {
-    double battery;
+    double deploy;
+    double harvest;
     double delta;
 };
 
@@ -37,10 +38,10 @@ class Optimizer{
     public:
         Optimizer(bool race_mode, bool mom);
 
-        double main_optimizing_loop();
+        double main_optimizing_loop(int seg_index, double initial_battery, double ending_battery);
         double dp_algorithm(int index, Battery battery, double ending_battery);
         double estimate_deploy_distance();
-        std::vector<Option> path_reconstruction(double battery, double ending_battery);
+        std::vector<Option> path_reconstruction(int starting_index, double battery, double ending_battery);
         std::vector<Option> segment_options(int seg_index, double initial_battery);
 
 };

@@ -2,10 +2,12 @@
 #include <cmath>
 #include <limits>
 #include <algorithm>
+#include <iostream>
 
 namespace p = physics;
 
-Optimizer::Optimizer(bool race_mode, bool mom) : race_mode(race_mode), mom(mom){
+Optimizer::Optimizer(bool race_mode, bool mom) :
+                     race_mode(race_mode), mom(mom){
     table.resize(circuit.size() * battery_buckets * battery_buckets, -1.0);
     choice.resize(circuit.size() * battery_buckets * battery_buckets, std::nullopt);
 }
@@ -14,15 +16,29 @@ Optimizer::Optimizer(bool race_mode, bool mom) : race_mode(race_mode), mom(mom){
 // b for battery level: since it is a stepping of 0.1 between 0-4. We will multiply this by 10 to give int
 // e for ending battery level: same as b
 int Optimizer::index_helper(int i, double b, double e){
-    int b_bucket = static_cast<int>(std::round(b * 10));
-    int e_bucket = static_cast<int>(std::round(e * 10));
+    int b_bucket = static_cast<int>(std::round(b * (1/bucket_size)));
+    int e_bucket = static_cast<int>(std::round(e * (1/bucket_size)));
 
     int value = e_bucket * circuit.size() * battery_buckets + (i * battery_buckets + b_bucket);
     return value;
 }
 
-double Optimizer::main_optimizing_loop(){
-    return {};
+// Input: seg_index, the index of the segment of the track that you want to start the simulation on
+//        initial_battery, the starting battery that you want to give the car, in MJ
+//        ending_battery, how much leftover battery charge you need, in MJ
+double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, double ending_battery){
+    Battery battery = Battery(initial_battery, 0.0, race_mode);
+    double best_laptime = dp_algorithm(seg_index, battery, ending_battery);
+    std::vector<Option> deployment_choice = path_reconstruction(seg_index, initial_battery, ending_battery);
+
+    // Display all the choices made to give the final output
+    for(const Option& op : deployment_choice){
+        std::cout << "Deployment choice: " << op.deploy << '\t';
+        std::cout << "Harvesting choice: " << op.harvest << '\t';
+        std::cout << "Delta change: " << op.delta << '\n';
+    }
+
+    return best_laptime;
 }
 
 // Index should be the index of the current segment of the circuit that we are on.
@@ -62,12 +78,12 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
         // Needs to check that the reminaing battery is at least 
         // the same amount of ending_battery at the end of the last segment
         bool ending_battery_ok = !is_last_segment ||
-        (battery.get_battery_charge() + option.battery >= ending_battery);
+        (battery.get_battery_charge() - option.deploy + option.harvest >= ending_battery);
 
-        if (battery.check_allow_charge(option.battery) && ending_battery_ok){
+        if (battery.check_allow_charge(option.deploy, option.harvest) && ending_battery_ok){
             Battery next_battery = battery;
-            if (option.battery >= 0) next_battery.harvest(option.battery);
-            else next_battery.deploy(-option.battery);
+            next_battery.deploy(option.deploy);
+            next_battery.harvest(option.harvest);
 
             remaining_time = dp_algorithm(index + 1, next_battery, ending_battery);
             total_time = remaining_time + option.delta;
@@ -83,6 +99,31 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
 
     return best_time;
 }
+
+// Reconstruct the path
+// Limitation, only runs when battery is in range : 0 <= battery <= 4
+// only runs after optimization is done, ie run on the same starting battery level as the table
+std::vector<Option> Optimizer::path_reconstruction(int starting_index, double battery, double ending_battery){
+    std::vector<Option> path;
+    int index = 0;
+
+    for (int i = starting_index; i < circuit.size(); i++){
+        index = index_helper(i, battery, ending_battery);
+        std::optional<Option> temp = choice.at(index);
+
+        if(temp.has_value()){
+            path.push_back(temp.value());
+            battery += temp.value().harvest - temp.value().deploy;
+        }
+        else{ // Output an empty vector if there is no valid paths
+            path.clear();
+            return path;
+        }
+    }
+
+    return path;
+}
+
 
 // This function will create an array of strategy options for the current segment that we are on
 // initial_battery should be in MJ
@@ -146,18 +187,25 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
 
     const double recharge_rating = std::clamp(p::ICE - power_output, -p::MGU_K, p::MGU_K);
 
-    const double harvest_energy = recharge_rating * 1000 * time;
+    double harvest_energy_MJ = recharge_rating * 1000 * time / 1000000;
 
     // The amount of energy in battery can be less than what we need
     // TO DO. Deal with this later because this will affect the fixed exit speed
     // For now we set the time to infinity
-    if(initial_battery < -harvest_energy){
-        Option temp = {harvest_energy / 1000000, std::numeric_limits<double>::infinity()};
-        option_table.push_back(temp);
+    if(initial_battery < -harvest_energy_MJ){
+        option_table.clear();
     }
     else{
-        Option temp = {harvest_energy / 1000000, time};
-        option_table.push_back(temp);
+        if(harvest_energy_MJ >= 0){ // Actually harvesting
+            harvest_energy_MJ = bucket_size * std::floor(harvest_energy_MJ * (1/bucket_size));
+            Option temp = {0, harvest_energy_MJ, time};
+            option_table.push_back(temp);
+        }
+        else{   // Deploying
+            harvest_energy_MJ = bucket_size * std::ceil(-harvest_energy_MJ * (1/bucket_size));
+            Option temp = {harvest_energy_MJ, 0, time};
+            option_table.push_back(temp);
+        }
     }
 
     return option_table;
@@ -193,7 +241,7 @@ std::vector<Option> Optimizer::option_table_slowcorner(int seg_index){
         const double energy_bucket_MJ = energy * bucket_size;
 
         // The delta is invariant to deployment, can't deploy energy as grip is limitation
-        Option temp = {energy_bucket_MJ, corner_duration};
+        Option temp = {0.0, energy_bucket_MJ, corner_duration};
         option_table.push_back(temp);
     }
 
@@ -255,6 +303,8 @@ Option Optimizer::best_option_for_bucket(double energy_J, int length, double exi
                                          double target_speed, double initial_battery){
     double best_time = std::numeric_limits<double>::infinity();
     double total_time = std::numeric_limits<double>::infinity();
+    double deploy_choice = 0.0;     // Energy deployed for the best time
+    double harvest_choice = 0.0;    // Energy harvested for the best time
     const double ke_target_speed = p::kinetic_energy(target_speed); // loop invariant, so precompute
     const int full_engine_power = p::MGU_K + p::ICE; // loop invariant
 
@@ -295,7 +345,7 @@ Option Optimizer::best_option_for_bucket(double energy_J, int length, double exi
             continue;
         }
 
-        if (recharge_power >= p::MGU_K * 1000)   recharge_power = p::MGU_K * 1000;
+        if (recharge_power >= p::MGU_K * 1000) recharge_power = p::MGU_K * 1000;
 
         time_harvesting = (energy_J + p::MGU_K*1000 * time_deploying)/(recharge_power);
 
@@ -305,38 +355,12 @@ Option Optimizer::best_option_for_bucket(double energy_J, int length, double exi
         // Update best time
         if (total_time < best_time){
             best_time = total_time;
+            deploy_choice = energy_deployed / 1000000;
+            harvest_choice = energy_harvested / 1000000;
         }
     }
 
-    Option output = {energy_J/1000000, best_time};
+    Option output = {deploy_choice, harvest_choice, best_time};
     return output;
 }
 
-
-// Reconstruct the path
-// Limitation, only runs when battery is in range : 0 <= battery <= 4
-// only runs after optimization is done, ie run on the same starting battery level as the table
-std::vector<Option> Optimizer::path_reconstruction(double battery, double ending_battery){
-    std::vector<Option> path;
-    int index = 0;
-
-    for (int i = 0; i < circuit.size(); i++){
-        index = index_helper(i, battery, ending_battery);
-        std::optional<Option> temp = choice.at(index);
-
-        if(temp.has_value()){
-            path.push_back(temp.value());
-            battery += temp.value().battery;
-        }
-        else{ // Output an empty vector if there is no valid paths
-            path.clear();
-            return path;
-        }
-    }
-
-    return path;
-}
-
-double Optimizer::estimate_deploy_distance(){
-    return {};
-}

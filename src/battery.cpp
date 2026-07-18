@@ -19,7 +19,7 @@ void Battery::harvest(double new_charge){
         // If new amount of harvest is less than the amount that we can recharge, recharge to the limit
         if(harvestable_amount <= new_charge){            
             set_battery(this->battery_charge + harvestable_amount);
-            set_harvest(this->battery_charge + harvestable_amount);
+            set_harvest(this->harvest_charge + harvestable_amount);
 
         } 
         else{
@@ -94,25 +94,17 @@ void Battery::set_race_mode(bool new_mode){
     this->race_mode = new_mode;
 }
 
-// Gives a check if rechargin this much will hit a ceiling
-bool Battery::check_allow_charge(double charge){
-    if (charge > 0){
-        if (charge + battery_charge <= battery_capacity && charge + harvest_charge <= harvest_limit){
-            return true;
-        }
-        else{
-            return false;
-        }
-    }
-    else{
-        if (charge + battery_charge >= 0){
-            return true;
-        }
-        else{
-            return false;
-        }
-    }
+// Check if there is enough battery to allow the requested deploy
+// Also check if there is enough space for reaching harvesting limit or battery capacity
+bool Battery::check_allow_charge(double deploy, double harvest){
 
+    bool deploy_feasible = deploy <= battery_charge;
+
+    bool battery_capacity_check = battery_capacity >= battery_charge - deploy + harvest;
+                        
+    bool harvest_limit_check = harvest - deploy + harvest_charge <= harvest_limit;
+
+    return deploy_feasible && harvest_limit_check && battery_capacity_check;
 }
 
 // Returns how much charge can be recharged

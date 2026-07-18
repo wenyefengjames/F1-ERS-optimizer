@@ -23,7 +23,7 @@ class Battery {
         bool is_harvest_full();
         void reset_harvest();
 
-        bool check_allow_charge(double charge);
+        bool check_allow_charge(double deploy, double harvest);
         double avaliable_charge();
 
         // Deployment
