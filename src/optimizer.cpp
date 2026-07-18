@@ -20,7 +20,9 @@ int Optimizer::index_helper(int i, double b, double e){
     return value;
 }
 
-double Optimizer::main_optimizing_loop(){}
+double Optimizer::main_optimizing_loop(){
+    return {};
+}
 
 // Index should be the index of the current segment of the circuit that we are on.
 // battery should be passed in value, they are changed within the function without affecting the actual battery level,
@@ -234,4 +236,6 @@ std::vector<Option> Optimizer::straight_to_fast(int seg_index, double initial_ba
 }
 
 
-double Optimizer::estimate_deploy_distance(){}
+double Optimizer::estimate_deploy_distance(){
+    return {};
+}
