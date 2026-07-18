@@ -16,6 +16,8 @@ class Optimizer{
 
     private:
         const int battery_buckets = 41;
+        const int partition_size = 15;      // The length that distance of segment needs to be divided by
+        const double bucket_size = 0.1;     // The size of energy bucket being used in each step, in MJ
         bool race_mode;
         bool mom;
         Track circuit = Track();
@@ -26,6 +28,10 @@ class Optimizer{
         // Helper function to flatten the 3D table into 1D by translating index positions
         int index_helper(int i, double b, double e);
 
+        std::vector<Option> option_table_straight(int seg_index, double initial_battery);
+        Option best_option_for_bucket(double energy_J, int length, double exit_speed, double target_speed,
+                                      double initial_battery);
+
     public:
         Optimizer(bool race_mode, bool mom);
 
@@ -34,9 +40,5 @@ class Optimizer{
         double estimate_deploy_distance();
         std::vector<Option> path_reconstruction(double battery, double ending_battery);
         std::vector<Option> segment_options(int seg_index, double initial_battery);
-
-        std::vector<Option> straight_to_fast(int seg_index, double initial_battery);
-        std::vector<Option> straight_to_slow(int seg_index, double initial_battery);
-        
 
 };
