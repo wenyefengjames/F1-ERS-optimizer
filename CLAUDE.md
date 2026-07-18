@@ -90,7 +90,7 @@ Act as a senior engineer doing code review, not as an implementer:
 - [x] Car / physics model — ICE/MGU-K/mass constants, deployment, taper curve, kinetic-energy↔speed conversion, harvesting methods (braking/coasting/superclip/partial-throttle)
 - [x] Drag-aware physics formulas (physics.h/.cpp) — kinetic energy, work done under power with drag, required power, coasting energy loss, distance-to-recharge, time-to-reach-velocity. Validated in test.py, spot-checked in C++ via physics_check.cpp (not a real test suite — framework TBD, still deferred to the later phase)
 - [x] DP optimizer core, consider how to optimize recharge, how much hp goes to superclipping etc..
-- [ ] Generating a table of (battery, delta) pairs for each segment of the track (`segment_options()`), so that the DP optimizer can use this information to decide the best course of action — Straight→FastCorner implemented (`straight_to_fast()`, currently in bug-fixing pass); Straight→SlowCorner (`straight_to_slow()`), SlowCorner, and FastCorner segment branches still stubs
+- [x] Generating a table of (battery, delta) pairs for each segment of the track (`segment_options()`), so that the DP optimizer can use this information to decide the best course of action. For each case of Straight, FastCorner and SlowCorner, the functions have been implemented.
 - [ ] Qualifying mode
 - [ ] Race mode (multi-lap)
 
