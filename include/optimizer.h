@@ -32,8 +32,8 @@ class Optimizer{
         std::vector<Option> option_table_straight(int seg_index, double initial_battery);
         std::vector<Option> option_table_slowcorner(int seg_index);
         std::vector<Option> option_table_fastcorner(int seg_index, double initial_battery);  
-        Option best_option_for_bucket(double energy_J, int length, double exit_speed, double target_speed,
-                                      double initial_battery);
+        std::vector<Option> best_option_for_bucket(int length, double exit_speed, 
+                                         double target_speed, double initial_battery);
 
     public:
         Optimizer(bool race_mode, bool mom);
