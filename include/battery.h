@@ -32,6 +32,7 @@ class Battery {
         // Getters --------------------------------------
         double get_battery_charge();
         double get_harvest_charge();
+        double get_harvest_limit();
         bool get_race_mode();
 
         // Setters --------------------------------------

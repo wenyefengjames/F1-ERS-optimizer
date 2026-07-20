@@ -31,12 +31,30 @@ double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, do
     double best_laptime = dp_algorithm(seg_index, battery, ending_battery);
     std::vector<Option> deployment_choice = path_reconstruction(seg_index, initial_battery, ending_battery);
 
+    double total_recharge = 0.0;
+    double total_deploy = 0.0;
+
     // Display all the choices made to give the final output
     for(const Option& op : deployment_choice){
+        std::cout << "--------------------------\n";
         std::cout << "Deployment choice: " << op.deploy << '\t';
         std::cout << "Harvesting choice: " << op.harvest << '\t';
         std::cout << "Delta change: " << op.delta << '\n';
+        std::cout << "battery before harvest: " << battery.get_harvest_charge() << '\t';
+        std::cout << "uncapped harvest: " << battery.get_harvest_charge() + op.harvest << '\t';
+        std::cout << "Is harvest full?: " << (battery.get_harvest_charge() + op.harvest 
+                                            <= battery.get_harvest_limit()) << '\n';
+        total_deploy += op.deploy;
+        total_recharge += op.harvest;
+        battery.deploy(op.deploy);
+        battery.harvest(op.harvest);
+        
+        std::cout << "battery after harvest: " << battery.get_harvest_charge() << '\t';
+        std::cout << "harvest_limit: " << battery.get_harvest_limit() << '\n';
     }
+    std::cout << "total_deploy: " << total_deploy << '\t';
+    std::cout << "total_recharge: " << total_recharge << '\n';
+    std::cout << "net change: " << total_recharge- total_deploy << '\n';
 
     return best_laptime;
 }
@@ -47,22 +65,23 @@ double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, do
 // ending_battery is the target battery level that we need to reach at the end of the last segment
 double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery){
     
-
     // Base case check
     if (index == circuit.size()) {
-        std::cout << "ran out of track: " << '\n';
+        // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
+        // std::cout << "ran out of track: " << '\n';
         return 0;
     }
-
-    std::cout << "current segment name: " <<  circuit.at(index)->get_name() << '\n';
-    std::cout << "prev segment name: " <<  circuit.prev(index)->get_name() << '\n';
-    std::cout << "next segment name: " <<  circuit.next(index)->get_name() << '\n';
+    // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
+    // std::cout << "current segment name: " <<  circuit.at(index)->get_name() << '\n';
+    // std::cout << "prev segment name: " <<  circuit.prev(index)->get_name() << '\n';
+    // std::cout << "next segment name: " <<  circuit.next(index)->get_name() << '\n';
 
     int i = index_helper(index, battery.get_battery_charge(), ending_battery);
 
     // Return value immediately if there is a memoization of the current state
     if (table.at(i) != -1){
-        std::cout << "apprently I found something already: " << table.at(i) << '\n';
+        // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
+        // std::cout << "apprently I found something already: " << table.at(i) << '\n';
         return table.at(i);
     }
 
@@ -76,15 +95,17 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
     std::vector<Option> current_segment = segment_options(index, battery.get_battery_charge());
     
     // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
-    std::cout << "size of the segment" << current_segment.size() << '\n';
-    for(const Option& op : current_segment){
-        std::cout << "Deployment choice: " << op.deploy << '\t';
-        std::cout << "Harvesting choice: " << op.harvest << '\t';
-        std::cout << "Delta change: " << op.delta << '\n';
-    }
+    // std::cout << "size of the segment" << current_segment.size() << '\n';
+    // for(const Option& op : current_segment){
+    //     std::cout << "Deployment choice: " << op.deploy << '\t';
+    //     std::cout << "Harvesting choice: " << op.harvest << '\t';
+    //     std::cout << "Delta change: " << op.delta << '\n';
+    // }
 
-    bool is_last_segment = (index == circuit.size() - 1);
-    std::cout << "is_last_segment " << is_last_segment << '\n';
+    bool is_last_segment = index == (circuit.size() - 1);
+
+    // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
+    // std::cout << "is_last_segment " << is_last_segment << '\n';
 
     // Main DP loop
     for (const Option& option : current_segment){
@@ -96,31 +117,34 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
         bool ending_battery_ok = !is_last_segment ||
         (battery.get_battery_charge() - option.deploy + option.harvest >= ending_battery);
 
-        std::cout << "ending_battery_ok " << ending_battery_ok << '\n';
-        std::cout << "Deploy: " << option.deploy << '\t';
-        std::cout << "Harvest: " << option.harvest << '\n';
-        std::cout << "battery charge: " << battery.get_battery_charge() << '\t';
-        std::cout << "harvest charge: " << battery.get_harvest_charge() << '\n';
-        std::cout << battery.check_allow_charge(option.deploy, option.harvest) << " check allow charge" << '\n';
+        // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
+        // std::cout << "ending_battery_ok " << ending_battery_ok << '\n';
+        // std::cout << "Deploy: " << option.deploy << '\t';
+        // std::cout << "Harvest: " << option.harvest << '\n';
+        // std::cout << "battery charge: " << battery.get_battery_charge() << '\t';
+        // std::cout << "harvest charge: " << battery.get_harvest_charge() << '\n';
+        // std::cout << "ending battery check: " << ending_battery_ok << '\t';
+        // std::cout << " check allow charge: " << battery.check_allow_charge(option.deploy, option.harvest) << '\t';
+        // std::cout << "Check if-statement: " << (battery.check_allow_charge(option.deploy, option.harvest) && ending_battery_ok) << '\n';
 
         if (battery.check_allow_charge(option.deploy, option.harvest) && ending_battery_ok){
+
             Battery next_battery = battery;
             next_battery.deploy(option.deploy);
             next_battery.harvest(option.harvest);
 
-            std::cout << "current segment name: " <<  circuit.at(index)->get_name() << '\n';
-            std::cout << "next segment name: " <<  circuit.next(index)->get_name() << '\n';
+            // std::cout << "current segment name: " <<  circuit.at(index)->get_name() << '\n';
+            // std::cout << "next segment name: " <<  circuit.next(index)->get_name() << '\n';
+
             remaining_time = dp_algorithm(index + 1, next_battery, ending_battery);
-
-            std::cout << "remaining_time" << remaining_time << "\n";
-
             total_time = remaining_time + option.delta;
 
-            std::cout << "total_time" << total_time << "\n";
+            // std::cout << "remaining_time" << remaining_time << "\n";
+            // std::cout << "total_time" << total_time << "\n";
         }
-        else{
-            std::cout << "no update" << "\n";
-        }
+        // else{
+        //     std::cout << "no update" << "\n";
+        // }
 
         if (total_time < best_time){
             best_time = total_time;
@@ -210,10 +234,11 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
     const double ke_gain = p::kinetic_energy(target_speed) - p::kinetic_energy(current_speed);
     const double power_output = p::required_power(current_speed, ke_gain, length) / 1000;
 
-    std::cout << "ke_gain: " << ke_gain << "\t";
-    std::cout << "power_output: " << power_output << "\t";
-    std::cout << "length: " << length << "\t";
-    std::cout << "init battery: " << initial_battery << "\n";
+    // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
+    // std::cout << "ke_gain: " << ke_gain << "\t";
+    // std::cout << "power_output: " << power_output << "\t";
+    // std::cout << "length: " << length << "\t";
+    // std::cout << "init battery: " << initial_battery << "\n";
 
     // Indicates that the car needs braking, which should never happen
     if (power_output < 0){
@@ -227,9 +252,10 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
 
     double harvest_energy_MJ = recharge_rating * 1000 * time / 1000000;
 
-    std::cout << "initial_battery < -harvest_energy_MJ: " << (initial_battery < -harvest_energy_MJ) << "\t";
-    std::cout << "time: " << time << "\t";
-    std::cout << "harvest_energy_MJ: " << harvest_energy_MJ << "\n";
+    // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
+    // std::cout << "initial_battery < -harvest_energy_MJ: " << (initial_battery < -harvest_energy_MJ) << "\t";
+    // std::cout << "time: " << time << "\t";
+    // std::cout << "harvest_energy_MJ: " << harvest_energy_MJ << "\n";
 
     // The amount of energy in battery can be less than what we need
     // TO DO. Deal with this later because this will affect the fixed exit speed
@@ -418,11 +444,18 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, double exit_sp
         // std::cout << "total time: " << total_time << "\n";
         // std::cout << "============================ " << "\n";
 
-        energy_deployed = bucket_size * std::ceil(energy_deployed  / 1000000 * (1/bucket_size));
-        energy_harvested = bucket_size * std::floor(energy_harvested / 1000000 * (1/bucket_size));
+        
 
-        Option temp = {energy_deployed, energy_harvested, total_time};
-        output.push_back(temp);
+        energy_deployed = bucket_size * std::ceil(energy_deployed  / 1000000 * (1/bucket_size));
+        int energy_harvested_buckets = 1 + std::floor(energy_harvested / 1000000 * (1/bucket_size));
+
+        // Option table generating loop, doesn't need to harvest all the energy given
+        for (int energy = 0; energy < energy_harvested_buckets; energy++){
+            const double energy_bucket_MJ = energy * bucket_size;
+
+            Option temp = {energy_deployed, energy_bucket_MJ, total_time};
+            output.push_back(temp);
+        }
     }
     return output;
 }

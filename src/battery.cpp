@@ -69,6 +69,9 @@ bool Battery::get_race_mode(){
     return this->race_mode;
 }
 
+double Battery::get_harvest_limit(){
+    return this->harvest_limit;
+}
 // Setters -------------------------------------------------
 void Battery::set_battery(double energy){
     battery_charge = std::min(energy, battery_capacity);
@@ -102,7 +105,7 @@ bool Battery::check_allow_charge(double deploy, double harvest){
 
     bool battery_capacity_check = battery_capacity >= battery_charge - deploy + harvest;
                         
-    bool harvest_limit_check = harvest - deploy + harvest_charge <= harvest_limit;
+    bool harvest_limit_check = harvest + harvest_charge <= harvest_limit;
 
     return deploy_feasible && harvest_limit_check && battery_capacity_check;
 }

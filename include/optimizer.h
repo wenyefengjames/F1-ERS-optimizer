@@ -16,9 +16,9 @@ struct Option {
 class Optimizer{
 
     private:
-        const int battery_buckets = 41;
-        const int partition_size = 15;      // The length that distance of segment needs to be divided by
-        const double bucket_size = 0.1;     // The size of energy bucket being used in each step, in MJ
+        const int partition_size = 10;      // The length that distance of segment needs to be divided by
+        const double bucket_size = 0.05;     // The size of energy bucket being used in each step, in MJ
+        const int battery_buckets = 4.0/bucket_size + 1;
         bool race_mode;
         bool mom;
         Track circuit = Track();
