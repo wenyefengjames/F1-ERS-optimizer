@@ -34,10 +34,17 @@ Definition of corners: places where the driver cannot keep at 100% throttle.
 Choices of how to harvest in corners: For now, we harvest everything in braking, no deployment needed because grip is the limiting factor. When lifting and coasting, all power from engine goes to harvesting. When partial throttle, the % of throttle not used from the engine will go to harvesting. However, that will be too complex for the prototype, so for now we won't record the throttle position. Instead, we use the difference between entry speed and apex minimum speed to calculate how much to slow down.
 
 
-Sidenote on CV and application: That comparison number (e.g. "DP-optimized qualifying lap is 0.3s faster than greedy") is genuinely good CV material — it's a concrete, explainable result.
-
-Information about the current 2026 F1 car:
-- weight: 768kg, excluding fuel
-- ICE power: 536hp/400kW
-- MGU-K power: 470hp/350kW
+Future ideas that can be implemented: (Recorded here just in case forget):
+- Giving battery deployment plan to best attack for a position
+- Giving battery deployment plan to defend for a position
+- Include tapering function, so far we still haven't considered that. And if we do, we would need to use numerical methods to estimate energy deployment instead of using physics formulas.
+- Multi-threading, or any performance improvement optimization techniques
+- Bring in read track data (Not sure what to use them for just yet)
+- Make the car model more realistic, bring in effects of tire wear, aerodynamics when trailing a car, straight line mode which reduces drag, engine RPM affects battery recharging, etc. (If thought of more write them here)
+- Maybe extend this to incorporate with C#, with a strategy software.
+- More accurate lap model. 
+- Use docker to make it deployable
+- A GUI for easy visualization
+- Allow simulation for other tracks, not just Silverstone (Maybe even predict pole lap speed for future races)
+- 
 
