@@ -38,27 +38,51 @@ double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, do
     double total_recharge = 0.0;
     double total_deploy = 0.0;
 
+    double sector_1 = 0.0;
+    double sector_2 = 0.0;
+    double sector_3 = 0.0;
+
     // Display all the choices made to give the final output
     for(const Option& op : deployment_choice){
         std::cout << "--------------------------\n";
-        std::cout << "Deployment choice: " << op.deploy << '\t';
-        std::cout << "Harvesting choice: " << op.harvest << '\t';
-        std::cout << "Delta change: " << op.delta << '\n';
-        std::cout << "battery before harvest: " << battery.get_harvest_charge() << '\t';
-        std::cout << "uncapped harvest: " << battery.get_harvest_charge() + op.harvest << '\t';
-        std::cout << "Is harvest full?: " << (battery.get_harvest_charge() + op.harvest 
-                                            <= battery.get_harvest_limit()) << '\n';
+        std::cout << "Current segment: " << circuit.at(seg_index)->get_name() << '\n';
+        std::cout << "Deployed amount: " << op.deploy << 'MJ \t';
+        std::cout << "Harvested amount: " << op.harvest << 'MJ \t';
+        std::cout << "Time spent in this segment: " << op.delta << '\n';
+        // std::cout << "battery before harvest: " << battery.get_harvest_charge() << '\t';
+        // std::cout << "uncapped harvest: " << battery.get_harvest_charge() + op.harvest << '\t';
+        // std::cout << "Is harvest full?: " << (battery.get_harvest_charge() + op.harvest 
+        //                                     <= battery.get_harvest_limit()) << '\n';
+
+
+        // Calculate sector times
+        if(seg_index >=0 && seg_index <= 4){
+            sector_1 += op.delta;
+        }
+        else if (seg_index >=5 && seg_index <= 11){
+            sector_2 += op.delta;
+        }
+        else{
+            sector_3 += op.delta;
+        }
+
         total_deploy += op.deploy;
         total_recharge += op.harvest;
         battery.deploy(op.deploy);
         battery.harvest(op.harvest);
         
-        std::cout << "battery after harvest: " << battery.get_harvest_charge() << '\t';
-        std::cout << "harvest_limit: " << battery.get_harvest_limit() << '\n';
+        // std::cout << "battery after harvest: " << battery.get_harvest_charge() << '\t';
+        // std::cout << "harvest_limit: " << battery.get_harvest_limit() << '\n';
+        seg_index += 1;
     }
-    std::cout << "total_deploy: " << total_deploy << '\t';
-    std::cout << "total_recharge: " << total_recharge << '\n';
-    std::cout << "net change: " << total_recharge- total_deploy << '\n';
+    std::cout << "Total amount of energy deployed: " << total_deploy << '\t';
+    std::cout << "Total amount of energy harvested: " << total_recharge << '\n';
+    std::cout << "Net change of battery: " << total_recharge- total_deploy << '\n';
+
+    std::cout << "Sector times: --------------------------\n";
+    std::cout << "Sector 1: " << sector_1 << '\t';
+    std::cout << "Sector 2: " << sector_2 << '\t';
+    std::cout << "Sector 3: " << sector_3 << '\n';
 
     return best_laptime;
 }
@@ -182,7 +206,6 @@ std::vector<Option> Optimizer::path_reconstruction(int starting_index, double ba
             return path;
         }
     }
-
     return path;
 }
 
@@ -448,8 +471,6 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, double exit_sp
         // std::cout << "total energy: " << energy_harvested - energy_deployed << "\t";
         // std::cout << "total time: " << total_time << "\n";
         // std::cout << "============================ " << "\n";
-
-        
 
         energy_deployed = bucket_size * std::ceil(energy_deployed  / 1000000 * (1/bucket_size));
         int energy_harvested_buckets = 1 + std::floor(energy_harvested / 1000000 * (1/bucket_size));
