@@ -8,28 +8,32 @@ namespace p = physics;
 
 Optimizer::Optimizer(bool race_mode, bool mom) :
                      race_mode(race_mode), mom(mom){
-    table.resize(circuit.size() * battery_buckets * battery_buckets, -1.0);
-    choice.resize(circuit.size() * battery_buckets * battery_buckets, std::nullopt);
+    table.resize(circuit.size() * battery_buckets * battery_buckets * harvest_buckets, -1.0);
+    choice.resize(circuit.size() * battery_buckets * battery_buckets * harvest_buckets, std::nullopt);
 }
 
 // i for index: which segment are we currently in
 // b for battery level: since it is a stepping of 0.1 between 0-4. We will multiply this by 10 to give int
 // e for ending battery level: same as b
-int Optimizer::index_helper(int i, double b, double e){
+// h for harvest: to stop the algorithm from reaching over the harvest limit
+int Optimizer::index_helper(int i, double b, double e, double h){
     int b_bucket = static_cast<int>(std::round(b * (1/bucket_size)));
     int e_bucket = static_cast<int>(std::round(e * (1/bucket_size)));
+    int h_bucket = static_cast<int>(std::round(h * (1/bucket_size)));
 
-    int value = e_bucket * circuit.size() * battery_buckets + (i * battery_buckets + b_bucket);
+    int value = h_bucket * (circuit.size() * battery_buckets * battery_buckets) + 
+                (e_bucket * circuit.size() * battery_buckets + (i * battery_buckets + b_bucket));
     return value;
 }
 
 // Input: seg_index, the index of the segment of the track that you want to start the simulation on
 //        initial_battery, the starting battery that you want to give the car, in MJ
 //        ending_battery, how much leftover battery charge you need, in MJ
-double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, double ending_battery){
-    Battery battery = Battery(initial_battery, 0.0, race_mode);
+//        harvest, the starting harvest that you want to give the car, should be 0 by default
+double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, double ending_battery, double harvest){
+    Battery battery = Battery(initial_battery, harvest, race_mode);
     double best_laptime = dp_algorithm(seg_index, battery, ending_battery);
-    std::vector<Option> deployment_choice = path_reconstruction(seg_index, initial_battery, ending_battery);
+    std::vector<Option> deployment_choice = path_reconstruction(seg_index, initial_battery, ending_battery, harvest);
 
     double total_recharge = 0.0;
     double total_deploy = 0.0;
@@ -76,7 +80,7 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
     // std::cout << "prev segment name: " <<  circuit.prev(index)->get_name() << '\n';
     // std::cout << "next segment name: " <<  circuit.next(index)->get_name() << '\n';
 
-    int i = index_helper(index, battery.get_battery_charge(), ending_battery);
+    int i = index_helper(index, battery.get_battery_charge(), ending_battery, battery.get_harvest_charge());
 
     // Return value immediately if there is a memoization of the current state
     if (table.at(i) != -1){
@@ -160,17 +164,18 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
 // Reconstruct the path
 // Limitation, only runs when battery is in range : 0 <= battery <= 4
 // only runs after optimization is done, ie run on the same starting battery level as the table
-std::vector<Option> Optimizer::path_reconstruction(int starting_index, double battery, double ending_battery){
+std::vector<Option> Optimizer::path_reconstruction(int starting_index, double battery, double ending_battery, double harvest){
     std::vector<Option> path;
     int index = 0;
 
     for (int i = starting_index; i < circuit.size(); i++){
-        index = index_helper(i, battery, ending_battery);
+        index = index_helper(i, battery, ending_battery, harvest);
         std::optional<Option> temp = choice.at(index);
 
         if(temp.has_value()){
             path.push_back(temp.value());
             battery += temp.value().harvest - temp.value().deploy;
+            harvest += temp.value().harvest;
         }
         else{ // Output an empty vector if there is no valid paths
             path.clear();

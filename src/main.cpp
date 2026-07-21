@@ -11,6 +11,7 @@ int main() {
     double laptime = 0.0;
     double start_bat = 0.0;
     double end_bat = 0.0;
+    double harvest = 0.0;
 
     std::cout << "ERS Optimizer Program" << std::endl;
     std::cout << "Enter 'race' or 'qualify' to choose mode: ";
@@ -29,13 +30,15 @@ int main() {
     std::cin >> start_bat;
     std::cout << "Ending battery: ";
     std::cin >> end_bat;
+    std::cout << "starting harvest: ";
+    std::cin >> harvest;
 
     Optimizer ems(race_mode, mom);
     if(race_mode){ // long distance
-        laptime =  ems.main_optimizing_loop(0, start_bat, end_bat);
+        laptime =  ems.main_optimizing_loop(0, start_bat, end_bat, harvest);
     }
     else{ // qualifying
-        laptime = ems.main_optimizing_loop(0, 4.0, 0);
+        laptime = ems.main_optimizing_loop(0, 4.0, 0, 0);
     }
 
     std::cout << "Best lap time: 1." << (laptime - 60) << '\n';
