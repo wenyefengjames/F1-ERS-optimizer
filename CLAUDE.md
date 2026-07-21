@@ -52,7 +52,7 @@ energy management a genuinely tight, interesting problem rather than a simple
   (which isn't public).
 
 ## Timeline
-- **Days 1-9 (current phase): core working prototype.**
+- **Days 1-9 (current phase): core working prototype.** DONE
   Segment + battery data model, DP optimizer (race + qualifying modes), basic
   CLI to run a lap and compare against a naive baseline. This is what goes in
   my CV/application — needs to be genuinely working, not just scaffolding.
@@ -68,7 +68,7 @@ energy management a genuinely tight, interesting problem rather than a simple
 - Language standard: C++20
 - header/.h files live in include/, source/.cpp files live in src/
 - In Car class, physics work in Joules. In Battery class, energy is stored as MJ
-- Testing: not yet decided — Catch2 or Google Test
+- Testing: Google Test (decided) — next up, see Progress log
 - Later: FastF1 (Python) for data, pybind11 for C++/Python bridge (tentative),
   GitHub Actions for CI, Docker
 
@@ -91,8 +91,11 @@ Act as a senior engineer doing code review, not as an implementer:
 - [x] Drag-aware physics formulas (physics.h/.cpp) — kinetic energy, work done under power with drag, required power, coasting energy loss, distance-to-recharge, time-to-reach-velocity. Validated in test.py, spot-checked in C++ via physics_check.cpp (not a real test suite — framework TBD, still deferred to the later phase)
 - [x] DP optimizer core, consider how to optimize recharge, how much hp goes to superclipping etc..
 - [x] Generating a table of (battery, delta) pairs for each segment of the track (`segment_options()`), so that the DP optimizer can use this information to decide the best course of action. For each case of Straight, FastCorner and SlowCorner, the functions have been implemented.
-- [ ] Qualifying mode
-- [ ] Race mode (multi-lap)
+- [x] Qualifying mode — manually tested across several input combinations; harvest-cap enforcement (via the `harvest_charge` DP dimension) confirmed correctly respected.
+- [ ] Race mode (multi-lap) — partial: the DP supports race-mode parameters (the race harvest-cap variant, and an arbitrary starting/ending battery for a single lap), but doesn't yet simulate multiple laps with battery/harvest state carrying over lap-to-lap as the original spec above describes (`main_optimizing_loop` only ever runs one lap; nothing calls `Battery::reset_harvest()` between laps because there's no lap loop yet).
+- [x] MVP completed
+- [ ] Set up GoogleTest — starting with `Battery`'s methods (harvest/deploy/check_allow_charge, the things that have broken more than once this session), then a couple of DP integration cases. Next up, before tapering.
+- [ ] Implement and bring in tapering function
 
 ## MVP (ie the core prototype after 9 days)
 a CLI that takes no arguments (or minimal ones), builds the Silverstone segment list internally, runs the DP(or whatever optimization algorithm I make) for qualifying mode and race mode, and prints something like a per-segment table showing battery level and deployment decision, the change in delta when we decide to deploy/recharge at each segment, and total lap time — ideally alongside a naive baseline that we can compare to (e.g. "always deploy fully when possible", "never deploys", or "deploys the same amount in every segment") so the DP's improvement is visible and quantifiable, and we can compare the overall improvement in delta as well. More specific definitions and specifications can be found in PROJECT_SPEC.md.

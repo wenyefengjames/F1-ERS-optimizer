@@ -15,7 +15,7 @@ double Car::deployment(double time){
     double energy = time * r * 1000;// Total energy deployed, measured in J
     double d;                       // Distance travelled during deployment
     double v = this->speed / 3.6;   // Current speed in m/s
-    double m = this->mass;
+    double m = this->MASS_KG;
 
     this->battery.deploy(energy/1000000);
     this->speed = p::reverse_ke(this->speed, energy);
