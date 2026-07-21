@@ -42,13 +42,15 @@ double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, do
     double sector_2 = 0.0;
     double sector_3 = 0.0;
 
+    std::cout << "Starting battery charge: " << initial_battery << "MJ \n";
+
     // Display all the choices made to give the final output
     for(const Option& op : deployment_choice){
-        std::cout << "--------------------------\n";
-        std::cout << "Current segment: " << circuit.at(seg_index)->get_name() << '\n';
-        std::cout << "Deployed amount: " << op.deploy << 'MJ \t';
-        std::cout << "Harvested amount: " << op.harvest << 'MJ \t';
-        std::cout << "Time spent in this segment: " << op.delta << '\n';
+        // std::cout << "--------------------------\n";
+        std::cout << circuit.at(seg_index)->get_name() << '\t';
+        std::cout << "Deployed: " << op.deploy << "MJ \t";
+        std::cout << "Harvested: " << op.harvest << "MJ \t";
+        std::cout << "Time spent: " << op.delta << '\n';
         // std::cout << "battery before harvest: " << battery.get_harvest_charge() << '\t';
         // std::cout << "uncapped harvest: " << battery.get_harvest_charge() + op.harvest << '\t';
         // std::cout << "Is harvest full?: " << (battery.get_harvest_charge() + op.harvest 
@@ -75,11 +77,12 @@ double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, do
         // std::cout << "harvest_limit: " << battery.get_harvest_limit() << '\n';
         seg_index += 1;
     }
-    std::cout << "Total amount of energy deployed: " << total_deploy << '\t';
-    std::cout << "Total amount of energy harvested: " << total_recharge << '\n';
-    std::cout << "Net change of battery: " << total_recharge- total_deploy << '\n';
-
-    std::cout << "Sector times: --------------------------\n";
+    std::cout << "--------------------------\n";
+    std::cout << "Total amount of energy deployed: " << total_deploy << "MJ \t";
+    std::cout << "Total amount of energy harvested: " << total_recharge << "MJ \n";
+    std::cout << "Net change of battery: " << total_recharge - total_deploy << '\n';
+    std::cout << "--------------------------\n";
+    std::cout << "Sector times:\n";
     std::cout << "Sector 1: " << sector_1 << '\t';
     std::cout << "Sector 2: " << sector_2 << '\t';
     std::cout << "Sector 3: " << sector_3 << '\n';

@@ -12,18 +12,23 @@ namespace physics {
     inline constexpr double BATTERY_CAPACITY = 4.0;        // MJ
     inline constexpr double MGU_K = 350;                   // kW
     inline constexpr double ICE = 400;                     // kW
-    inline constexpr double BRAKING_DECEL = 5.5 * 9.8;     // m/s^-2
+    inline constexpr double BRAKING_DECEL = 5.5 * 9.8;     // m/s^-2, assuming that the braking force is 5.5g
 
     // Kinetic energy at a given speed (no drag).
     // Input: speed, in km/h
     // Output: kinetic energy, in Joules
     double kinetic_energy(double speed_kmh);
 
+    // Turning kinetic energy into speed in kmh
+    // Input: kinetic energy, in Joules
+    // Output: speed, in km/h
+    double ke_to_speed(double energy_J);
+
     // Final speed after adding extra kinetic energy to the car
     // Input: speed, in km/h
     //        energy, in Joules 
     // Output: speed, in km/h
-    double reverse_ke(double initial_speed_kmh, double energy);
+    double reverse_ke(double initial_speed_kmh, double energy_J);
 
     // Kinetic energy gained (excludes the car's initial KE) after travelling
     // distance_m at constant engine power, net of drag losses.
@@ -63,5 +68,35 @@ namespace physics {
     // Output: time to reach target_speed_kmh, in seconds
     double time_to_reach_velocity(double target_speed_kmh, double initial_speed_kmh, double power_kW);
 
+    // The curve of how the deployment rate decreases
+    // Assuming the power output decreases linearly with respect to speed
+    // Inputs: speed_kmh - current speed, in km/h
+    //         mom - if we have manual overide mode, boolean
+    // Output: the power output, in kW
+    double taper_curve(double speed_kmh, double mom);
 
+    // Harvesting methods ==============================================================
+
+    // Calculates the amount of energy harvested during braking
+    // Inputs: current_speed_kmh - current speed, in km/h
+    //         target_speed_kmh - target speed, in km/h
+    // Output: Energy harvested during braking towards the target speed, in Joules
+    double braking_harvest(double current_speed_kmh, double target_speed_kmh); 
+
+    // Calculates the amount of energy harvested during coasting
+    // Inputs: time - time spent during coast, in seconds
+    // Output: Energy harvested during coasting, in Joules
+    double coasting_harvest(double time);
+
+    // Calculates the amount of energy harvested during superclipping
+    // Inputs: clip_rate - the amount of engine output that goes to recharge, in kW
+    //         time - time spent during superclipping, in seconds
+    // Output: Energy harvested during superclipping, in Joules
+    double superclipping(double clip_rate_kW, double time);
+
+    // Calculates the amount of energy harvested during partial throttle
+    // Inputs: throttle_percentage - percentage of throttle, between 0-100
+    //         time - time spent during partial throttle, in seconds
+    // Output: Energy harvested during partial throttle, in Joules
+    double partial_throttle_harvest(double throttle_percentage, double time);
 }

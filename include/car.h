@@ -17,21 +17,8 @@ class Car {
     public:
         Car(bool race_mode, bool mom);
 
-        // Harvesting methods
-        double braking_harvest(double target_speed); 
-        double coasting_harvest(double time);
-        double superclipping(double clip_rate, double time);
-        double partial_throttle_harvest(double throttle_percentage, double time);
-
         // Deployment
         double deployment(double energy);
-        
-        // The curve of how the deployment rate decreases
-        double taper_curve(double energy);
-
-        double ke_to_speed(double energy);
-
-        double drag();
 
         // Getters
         Battery get_battery();

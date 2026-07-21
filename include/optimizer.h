@@ -12,7 +12,6 @@ struct Option {
     double delta;
 };
 
-
 class Optimizer{
 
     private:
@@ -44,5 +43,4 @@ class Optimizer{
         double estimate_deploy_distance();
         std::vector<Option> path_reconstruction(int starting_index, double battery, double ending_battery, double harvest);
         std::vector<Option> segment_options(int seg_index, double initial_battery);
-
 };

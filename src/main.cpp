@@ -41,7 +41,7 @@ int main() {
         laptime = ems.main_optimizing_loop(0, 4.0, 0, 0);
     }
 
-    std::cout << "Best lap time: 1." << (laptime - 60) << '\n';
+    std::cout << "Lap time: 1." << (laptime - 60) << '\n';
 
     return 0;
 }
