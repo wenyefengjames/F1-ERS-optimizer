@@ -9,6 +9,10 @@ namespace physics {
     }
 
     double ke_to_speed(double energy_J){
+        if(energy_J < 0){ // Input validity check
+            return -1;
+        }
+
         return std::sqrt(2 * energy_J / MASS_KG) * 3.6;
     } 
 
@@ -73,18 +77,22 @@ namespace physics {
 
         return MASS_KG * (antiderivative(v) - antiderivative(vi));
     }
-
+    
     double taper_curve(double speed_kmh, double mom){
+        if(speed_kmh < 0) return -1;
+
         double power_output; // in kW
 
         if(mom){
             if(speed_kmh <= 337) power_output = 350;
-            else power_output = 350 + (speed_kmh - 337)*-19.44;
+            else power_output = 350 + (speed_kmh - 337)*-19.444444;
         }
         else{
             if(speed_kmh <= 290) power_output = 350; 
-            else power_output = 350 + (speed_kmh - 290)*-5.38;
+            else power_output = 350 + (speed_kmh - 290)*-5.3846154;
         }
+
+        if(power_output < 0) power_output = 0;
 
         return power_output;
     }
@@ -92,19 +100,27 @@ namespace physics {
     // Harvesting methods ==============================================================
 
     double braking_harvest(double current_speed_kmh, double target_speed_kmh){
+        if(current_speed_kmh < 0 || target_speed_kmh < 0 || current_speed_kmh < target_speed_kmh) return -1;
+
         return (current_speed_kmh - target_speed_kmh)/(BRAKING_DECEL * 3.6) * MGU_K * 1000;
     }
 
     double coasting_harvest(double time){
+        if(time < 0) return -1;
+
         return time * MGU_K * 1000;
     }
 
     double superclipping(double clip_rate_kW, double time){
+        if(time < 0 || clip_rate_kW < 0) return -1;
+
         clip_rate_kW = std::min(MGU_K, clip_rate_kW);
         return time * clip_rate_kW * 1000;
     }
 
     double partial_throttle_harvest(double throttle_percentage, double time){
+        if(throttle_percentage > 100 || throttle_percentage < 0 || time < 0) return -1;
+
         double recharge_rate = std::min(MGU_K, (100 - throttle_percentage) * 0.01 * ICE);
         double energy = time * recharge_rate * 1000;
 
