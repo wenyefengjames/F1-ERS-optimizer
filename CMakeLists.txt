@@ -39,6 +39,8 @@ add_executable(unit_tests
     test/test_battery.cpp
     test/test_car.cpp
     test/test_physics.cpp
+    test/test_track.cpp
+    test/test_optimizer.cpp
 )
 target_link_libraries(unit_tests PRIVATE ERSCore GTest::gtest_main)
 

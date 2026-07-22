@@ -14,6 +14,7 @@ class Track{
     public:
 
         Track();                    // Initiallizes the track and builds the Silverstone circuit
+        Segment* current();         // The current segment that it is on
         Segment* begin();           // The beginning segment of the track
         Segment* end();             // The ending segment of the track
         Segment* next(int index);   // The next segment of the track
@@ -25,6 +26,7 @@ class Track{
         void decre();               // Move to previous next segment
         void reset();               // Reset to the first segment
         int size();
+        int get_index();
 
 
 

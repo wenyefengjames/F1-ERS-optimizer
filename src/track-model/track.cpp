@@ -22,6 +22,11 @@ Track::Track(){
     track.push_back(std::make_unique<SlowCorner>("Turn 16 - 18               ", 0.0, 9.24, 102, 241, 254, 40));
 }
 
+// The current segment that the index is pointing to
+Segment* Track::current(){
+    return track.at(index).get();
+}
+
 // The beginning segment of the track
 Segment* Track::begin(){
     return track.at(0).get();
@@ -36,7 +41,6 @@ Segment* Track::end(){
 Segment* Track::next(int i){
     return track.at((i + 1) % track.size()).get();
 }
-
 
 Segment* Track::next(){
     return track.at((index + 1) % track.size()).get();
@@ -73,6 +77,11 @@ void Track::reset(){
 // Return the number of segments in the track
 int Track::size(){
     return track.size();
+}
+
+// Return the current index
+int Track::get_index(){
+    return index;
 }
 
 
