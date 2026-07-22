@@ -22,7 +22,11 @@ class Car {
 
         // Getters
         Battery get_battery();
+        bool get_race_mode();
+        bool get_mom();
 
         // Setters
+        void set_race_mode(bool race_mode);
+        void set_mom(bool mom);
 
 };

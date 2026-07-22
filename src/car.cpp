@@ -34,3 +34,20 @@ double Car::deployment(double time){
 Battery Car::get_battery(){
     return battery;
 }
+
+bool Car::get_race_mode(){
+    return race_mode;
+}
+
+bool Car::get_mom(){
+    return mom;
+}
+
+void Car::set_race_mode(bool race_mode){
+    this->race_mode = race_mode;
+    battery.set_race_mode(race_mode);
+}
+
+void Car::set_mom(bool mom){
+    this->mom = mom;
+}
