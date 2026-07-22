@@ -8,7 +8,7 @@ class Battery {
         const double battery_capacity = 4.0;          // Maximum capacity of battery, in MJ
         double battery_charge = 0.0;      // Can only be between 0-4.0, unit of MJ
         double harvest_charge = 0.0;      // Total harvested energy in a lap
-        double harvest_limit;       // Maximum energy allowed to harvest in a lap, depending on race mode
+        double harvest_limit = 0.0;       // Maximum energy allowed to harvest in a lap, depending on race mode
         bool race_mode;             // True being race mode, False being qualifying mode
 
     public:
@@ -22,7 +22,7 @@ class Battery {
         bool is_battery_empty();
         bool is_harvest_full();
         void reset_harvest();
-        
+
         bool check_allow_charge(double deploy, double harvest);
         double avaliable_charge();
 

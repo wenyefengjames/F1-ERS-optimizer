@@ -1,10 +1,11 @@
 #include "../include/battery.h"
 #include <algorithm>
+#include <iostream>
 
 Battery::Battery(double battery_charge, double harvest_charge, bool race_mode){
+    set_race_mode(race_mode);
     set_battery(battery_charge);
     set_harvest(harvest_charge);
-    set_race_mode(race_mode);
 }
 
 // Harvest energy to battery
@@ -12,7 +13,7 @@ void Battery::harvest(double new_charge){
     double harvestable_amount;
 
     // Check if the battery or harvesting has reached the limit
-    if(this->is_harvest_full() == false && this->is_battery_full() == false){
+    if(!this->is_harvest_full() && !this->is_battery_full()){
         harvestable_amount = std::min(this->harvest_limit - this->harvest_charge,
                                       this->battery_capacity - this->battery_charge); 
 
@@ -20,7 +21,6 @@ void Battery::harvest(double new_charge){
         if(harvestable_amount <= new_charge){            
             set_battery(this->battery_charge + harvestable_amount);
             set_harvest(this->harvest_charge + harvestable_amount);
-
         } 
         else{
             set_battery(this->battery_charge + new_charge);
@@ -80,7 +80,6 @@ void Battery::set_battery(double energy){
 void Battery::set_harvest(double energy){
     harvest_charge = std::min(energy, harvest_limit);
 }
-
 
 // Change race mode to new race mode
 // Change maximum harvest energy in a lap based on the new race mode

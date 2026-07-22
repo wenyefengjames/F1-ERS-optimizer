@@ -25,7 +25,4 @@ class Car {
 
         // Setters
 
-
-
-
 };
