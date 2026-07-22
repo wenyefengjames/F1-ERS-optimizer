@@ -26,9 +26,6 @@ class Optimizer{
         std::vector<double> table;    // Table for memoization
         std::vector<std::optional<Option>> choice;   // Table for path reconstruction
 
-        // Helper function to flatten the 3D table into 1D by translating index positions
-        int index_helper(int i, double b, double e, double h);
-
         std::vector<Option> option_table_straight(int seg_index, double initial_battery);
         std::vector<Option> option_table_slowcorner(int seg_index);
         std::vector<Option> option_table_fastcorner(int seg_index, double initial_battery);  
@@ -36,6 +33,9 @@ class Optimizer{
                                          double target_speed, double initial_battery);
 
     public:
+        // Helper function to flatten the 4D table into 1D by translating index positions
+        int index_helper(int i, double b, double e, double h);
+
         Optimizer(bool race_mode, bool mom);
 
         double main_optimizing_loop(int seg_index, double initial_battery, double ending_battery, double harvest);
