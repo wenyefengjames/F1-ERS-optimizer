@@ -1,0 +1,8 @@
+Checks: >
+    bugprone-*,
+    performance-*.
+    modernize-*,
+    cppcoreguidelines-pro-type-member-init,
+    clang-analyzer-*,
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'

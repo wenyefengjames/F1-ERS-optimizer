@@ -4,8 +4,17 @@ project(F1_ERS_Optimizer)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
+add_compile_options(-Wall -Wextra -Wuninitialized)
+
+option(ENABLE_SANITIZERS "Build with AddressSanitizer + UndefinedBehaviorSanitizer" OFF)
+
+if(ENABLE_SANATIZERS)
+    add_compile_options(-fsanitize-address,undefined -fno-omit-frame-pointer -g)
+    add_link_options(-fsanitize=address,undefined)
+endif()
 
 add_library(ERSCore
     src/track-model/segment.cpp
@@ -23,7 +32,7 @@ target_include_directories(ERSCore PUBLIC include)
 add_executable(ERSOptimizer src/main.cpp)
 target_link_libraries(ERSOptimizer PRIVATE ERSCore)
 
-set_target_properties(ERSOptimizer PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin" )
+set_target_properties(ERSOptimizer PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
 
 # ---- GoogleTest ----
 include(FetchContent)
@@ -44,7 +53,7 @@ add_executable(unit_tests
 )
 target_link_libraries(unit_tests PRIVATE ERSCore GTest::gtest_main)
 
-set_target_properties(unit_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin" )
+set_target_properties(unit_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
 
 include(GoogleTest)
 gtest_discover_tests(unit_tests)
