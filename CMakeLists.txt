@@ -54,6 +54,6 @@ add_executable(unit_tests
 target_link_libraries(unit_tests PRIVATE ERSCore GTest::gtest_main)
 
 set_target_properties(unit_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
-
+ 
 include(GoogleTest)
 gtest_discover_tests(unit_tests)
