@@ -327,3 +327,35 @@ TEST(PartialThrottleHarvestEdgeCase, InvalidInputsThrowNegative1) {
     EXPECT_NEAR(p::partial_throttle_harvest(-10.0, 1.0), -1.0, 1e-3);
     EXPECT_NEAR(p::partial_throttle_harvest(90.0, -1.0), -1.0, 1e-3);
 }
+
+// =========================================================================
+// Validating the drag equation
+// =========================================================================
+
+struct DragCheck {double speed_kmh; bool sm_on; double output;};
+
+class CheckDragFormula : public ::testing::TestWithParam<DragCheck> {};
+
+TEST_P(CheckDragFormula, CorrectValues){
+    DragCheck c = GetParam();
+    EXPECT_NEAR(p::drag(c.speed_kmh, c.sm_on), c.output, 5e-4);
+}
+
+INSTANTIATE_TEST_SUITE_P(VariousCases, CheckDragFormula, ::testing::Values(
+    DragCheck{0, false, 0},
+    DragCheck{-0.5, false, -1},
+    DragCheck{100, false, 685.2816},
+    DragCheck{200, false, 2741.1265},
+    DragCheck{300, false, 6167.5347},
+    DragCheck{0, true, 0},
+    DragCheck{-0.5, true, -1},
+    DragCheck{100, true, 479.6971},
+    DragCheck{200, true, 1918.7886},
+    DragCheck{300, true, 4317.2743}
+));
+
+
+TEST(DragFormulaEdgeCases, InvalidInputsThrowNegative1){
+    EXPECT_NEAR(p::drag(-0.5, false), -1, 5e-4);
+    EXPECT_NEAR(p::drag(-10, true), -1, 5e-4);
+}

@@ -5,14 +5,17 @@
 // functions in a namespace, not a class) -- there's no object identity here,
 // just math shared by Car and the optimizer.
 namespace physics {
-    inline constexpr double MASS_KG = 768.0;               // car mass, kg
-    inline constexpr double DRAG_AREA_COEFF = 0.8;         // CdA, m^2
-    inline constexpr double AIR_DENSITY = 1.225;           // rho, kg/m^3
+    inline constexpr double MASS_KG = 768.0;                // car mass, kg
+    inline constexpr double DRAG_AREA_COEFF = 0.8;          // CdA, m^2
+    inline constexpr double AIR_DENSITY = 1.225;            // rho, kg/m^3
+    inline constexpr double FRONTAL_AREA = 1.45;            // A, m^2
+    inline constexpr double CM_DRAG_COEFF = 1.0;            // Cd, Corner mode, no unit
+    inline constexpr double SM_DRAG_COEFF = 0.7;            // Cd, Stragiht mode, no unit
     inline constexpr double DRAG_K = 0.5 * AIR_DENSITY * DRAG_AREA_COEFF;
-    inline constexpr double BATTERY_CAPACITY = 4.0;        // MJ
-    inline constexpr double MGU_K = 350;                   // kW
-    inline constexpr double ICE = 400;                     // kW
-    inline constexpr double BRAKING_DECEL = 5.5 * 9.8;     // m/s^-2, assuming that the braking force is 5.5g
+    inline constexpr double BATTERY_CAPACITY = 4.0;         // MJ
+    inline constexpr double MGU_K = 350;                    // kW
+    inline constexpr double ICE = 400;                      // kW
+    inline constexpr double BRAKING_DECEL = 5.5 * 9.8;      // m/s^-2, assuming that the braking force is 5.5g
 
     // Kinetic energy at a given speed (no drag).
     // Input: speed, in km/h
@@ -74,6 +77,14 @@ namespace physics {
     //         mom - if we have manual overide mode, boolean
     // Output: the power output, in kW
     double taper_curve(double speed_kmh, double mom);
+
+    // A function that calculates the drag on the car
+    // Inputs: speed_kmh - current speed, in km/h
+    //         sm_on - whether the straight mode is on or not
+    // Output: drag force, in N
+    double drag(double speed_kmh, bool sm_on);
+
+    
 
     // Harvesting methods ==============================================================
 

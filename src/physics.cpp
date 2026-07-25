@@ -1,5 +1,6 @@
 #include "../include/physics.h"
 #include <cmath>
+#include <algorithm>
 
 namespace physics {
 
@@ -95,6 +96,18 @@ namespace physics {
         if(power_output < 0) power_output = 0;
 
         return power_output;
+    }
+
+    double drag(double speed_kmh, bool sm_on){
+        if(speed_kmh < 0) return -1;
+
+        speed_kmh = speed_kmh / 3.6;
+
+        if(sm_on) {
+            return 0.5 * AIR_DENSITY * FRONTAL_AREA * SM_DRAG_COEFF * speed_kmh * speed_kmh;
+        } 
+        
+        return 0.5 * AIR_DENSITY * FRONTAL_AREA * CM_DRAG_COEFF * speed_kmh * speed_kmh;
     }
 
     // Harvesting methods ==============================================================
