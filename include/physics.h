@@ -1,5 +1,13 @@
 #pragma once
 
+struct TaperedDeploymentResult{
+    double speed_kmh = 0.0;
+    double energy_J = 0.0;
+    double time_s = 0.0;
+    double distance_m = 0.0;
+};
+
+
 // Drag-aware kinematics/energy formulas for the car, translated from test.py
 // once their correctness was validated there. Stateless by design (free
 // functions in a namespace, not a class) -- there's no object identity here,
@@ -16,6 +24,7 @@ namespace physics {
     inline constexpr double MGU_K = 350;                    // kW
     inline constexpr double ICE = 400;                      // kW
     inline constexpr double BRAKING_DECEL = 5.5 * 9.8;      // m/s^-2, assuming that the braking force is 5.5g
+    inline constexpr double DELTA_T = 0.001;                  // s, change in time for numerical approximation
 
     // Kinetic energy at a given speed (no drag).
     // Input: speed, in km/h
@@ -78,13 +87,19 @@ namespace physics {
     // Output: the power output, in kW
     double taper_curve(double speed_kmh, double mom);
 
-    // A function that calculates the drag on the car
+    // Calculates the drag on the car
     // Inputs: speed_kmh - current speed, in km/h
     //         sm_on - whether the straight mode is on or not
     // Output: drag force, in N
     double drag(double speed_kmh, bool sm_on);
 
-    
+    // For a given distance of deployment, estimate the amount of energy deployed
+    // With consideration of tapering
+    // Inputs: initial_kmh - initial speed, in km/h
+    //         distance - how long to deploy energy for
+    //         mom - indicates if the car has MOM
+    // Output: energy gained with deployment, in Joules
+    TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, bool mom);
 
     // Harvesting methods ==============================================================
 

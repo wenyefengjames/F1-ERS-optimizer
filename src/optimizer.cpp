@@ -408,7 +408,7 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, double exit_sp
     double deploy_choice = 0.0;     // Energy deployed for the best time
     double harvest_choice = 0.0;    // Energy harvested for the best time
     const double ke_target_speed = p::kinetic_energy(target_speed); // loop invariant, so precompute
-    const int full_engine_power = p::MGU_K + p::ICE; // loop invariant
+    const double ke_init_speed = p::kinetic_energy(exit_speed); // loop invariant
 
     std::vector<Option> output;
 
@@ -423,11 +423,13 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, double exit_sp
         // std::cout << "deploy_dis: " << deploy_dis << "\t";
         // std::cout << "harvest_dis: " << harvest_dis << "\n";
 
-        const double ke_gained = p::work_done_with_drag(full_engine_power, exit_speed, deploy_dis);
-        const double speed = p::reverse_ke(exit_speed, ke_gained);
-        const double time_deploying = p::time_to_reach_velocity(speed, exit_speed, full_engine_power);
+        TaperedDeploymentResult results = p::energy_deployed_with_taper(exit_speed, deploy_dis, mom);
 
-        double energy_deployed = time_deploying * p::MGU_K * 1000;
+        const double ke_gained = p::kinetic_energy(results.speed_kmh) - ke_init_speed;
+        const double speed = results.speed_kmh;
+        const double time_deploying = results.time_s;
+
+        double energy_deployed = results.energy_J;
 
         // TESTING
         // std::cout << "energy_deployed: " << energy_deployed << "\t";

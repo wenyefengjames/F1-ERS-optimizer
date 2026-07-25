@@ -110,6 +110,27 @@ namespace physics {
         return 0.5 * AIR_DENSITY * FRONTAL_AREA * CM_DRAG_COEFF * speed_kmh * speed_kmh;
     }
 
+    TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, bool mom){
+        double current_kmh = initial_kmh; 
+        double total_deployed_distance = 0.0;
+        double total_energy_deployed = 0.0;
+        double total_time = 0.0;
+        
+        // Numerical method to approximate net KE gain
+        while(total_deployed_distance < distance){
+            double current_power = taper_curve(current_kmh, mom);
+            double ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * DELTA_T / 3.6);
+            current_kmh = reverse_ke(current_kmh, ke_gained);
+            total_deployed_distance += current_kmh * DELTA_T / 3.6;
+            total_energy_deployed += (current_power + ICE) * DELTA_T * 1000;
+            total_time += DELTA_T;
+        }
+
+        TaperedDeploymentResult output = {current_kmh, total_energy_deployed, total_time, total_deployed_distance};
+
+        return output; 
+    }
+
     // Harvesting methods ==============================================================
 
     double braking_harvest(double current_speed_kmh, double target_speed_kmh){

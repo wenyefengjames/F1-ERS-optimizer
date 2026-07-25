@@ -359,3 +359,36 @@ TEST(DragFormulaEdgeCases, InvalidInputsThrowNegative1){
     EXPECT_NEAR(p::drag(-0.5, false), -1, 5e-4);
     EXPECT_NEAR(p::drag(-10, true), -1, 5e-4);
 }
+
+
+// =========================================================================
+// Validating the deploying function with tapering
+// =========================================================================
+
+struct DeployTaperCheck {double speed_kmh; bool mom; double distance, output_kmh;};
+
+class CheckDeployTaperFormula : public ::testing::TestWithParam<DeployTaperCheck> {};
+
+TEST_P(CheckDeployTaperFormula, CorrectValues){
+    DeployTaperCheck c = GetParam();
+    EXPECT_NEAR(p::energy_deployed_with_taper(c.speed_kmh, c.mom, c.distance).speed_kmh, c.output_kmh, 5e-4);
+}
+
+INSTANTIATE_TEST_SUITE_P(VariousCases, CheckDeployTaperFormula, ::testing::Values(
+    DeployTaperCheck{0, false, 0, 0},
+    DeployTaperCheck{100, false, 0, 100},
+    DeployTaperCheck{100, false, 30, 130},
+    DeployTaperCheck{200, false, 100, 300},
+    DeployTaperCheck{300, false, 100, 330},
+    DeployTaperCheck{0, true, 0, 0},
+    DeployTaperCheck{100, true, 0, 100},
+    DeployTaperCheck{100, true, 30, 130},
+    DeployTaperCheck{200, true, 100, 310},
+    DeployTaperCheck{300, true, 100, 340}
+));
+
+
+// TEST(DeployTaperFormulaEdgeCases, InvalidInputsThrowNegative1){
+//     EXPECT_NEAR(p::drag(-0.5, false), -1, 5e-4);
+//     EXPECT_NEAR(p::drag(-10, true), -1, 5e-4);
+// }
