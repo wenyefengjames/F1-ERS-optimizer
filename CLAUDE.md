@@ -7,18 +7,17 @@ Engineering) and Alpine (Software Engineering placement) applications. We are on
 
 ## Domain context — 2026 F1 power unit regulations
 - Battery: has a maximum charge of 4MJ usable energy cap at any time. No MGU-H — MGU-K only (simpler single source/sink energy balance vs. the old car).
-- MGU-K: Maximum rate of deploy and recover capped at 350kW (up from 120kW previously).
-- Deployment: up to 4MJ bursts per deployment(~11.5s at full power), multiple deployments per lap allowed if battery supports it (old rules allowed one deployment window/lap). Deployment tapers above 290km/h, hits zero at 355km/h (leading car). A following car within 1s gets MOM, which allows full 350kW up to 337km/h. Note: there are no publicly confirmed taper curve shape, so we assume as linear interpolation. 
+- MGU-K: Maximum rate of deploy and recover capped at 350kW.
+- Deployment: up to 4MJ bursts per deployment, multiple deployments per lap allowed if battery supports it (old rules allowed one deployment window/lap). Deployment tapers above 290km/h, hits zero at 355km/h (leading car). A following car within 1s gets MOM, which allows full 350kW up to 337km/h. Note: there are no publicly confirmed taper curve shape, so we assume as linear interpolation. 
 - Harvest per lap (Silverstone, 2026 British GP): regulated per-session cap,
   not a physical estimate — qualifying ≈ 6.5MJ, race ≈ 8.0MJ. Qualifying is the
   circuit-sensitive number (FIA cuts it per-event when a track doesn't offer
   enough natural braking energy); race stays close to a flat ~8MJ baseline
   across circuits. Model these as two separate input parameters
-  (qualifying_harvest_cap_MJ / race_harvest_cap_MJ), not one shared constant.
+  (qualifying_harvest_cap_MJ / race_harvest_cap_MJ), not one shared constant. When the trailing car gets MOM, they are allowed 0.5MJ more harvest in a lap than the car in front.
 - Harvest methods: braking, partial throttle, coasting, "superclipping"
   (diverting engine power to battery at full throttle). Cap: 350kW as of the
   Miami GP mid-season update (was 250kW at season start).
-- Harvesting value assumptions(unverifiable estimates): heavy breaking ≈ 250-350kW, coasting ≈ 50-200kW, partial throttle ≈ 50-200kW, superclipping ≈ 250-350kW.
 - 1hp = 0.7457kW
 
 
@@ -67,8 +66,8 @@ energy management a genuinely tight, interesting problem rather than a simple
 - Compiler: GCC 14.2.0 (Windows)
 - Language standard: C++20
 - header/.h files live in include/, source/.cpp files live in src/
-- In Car class, physics work in Joules. In Battery class, energy is stored as MJ
-- Testing: Google Test (decided) — next up, see Progress log
+- In physics.cpp, physics work in Joules. In Battery class, energy is stored as MJ
+- Testing: Google Test — next up, see Progress log
 - Later: FastF1 (Python) for data, pybind11 for C++/Python bridge (tentative),
   GitHub Actions for CI, Docker
 
@@ -95,7 +94,7 @@ Act as a senior engineer doing code review, not as an implementer:
 - [ ] Race mode (multi-lap) — partial: the DP supports race-mode parameters (the race harvest-cap variant, and an arbitrary starting/ending battery for a single lap), but doesn't yet simulate multiple laps with battery/harvest state carrying over lap-to-lap as the original spec above describes (`main_optimizing_loop` only ever runs one lap; nothing calls `Battery::reset_harvest()` between laps because there's no lap loop yet).
 - [x] MVP completed
 - [x] GoogleTest set up; unit tests written for `Battery`, `Car`, and `Physics` (simple/linear formulas + documented edge-case behavior for all of them). The transcendental drag-ODE formulas (`work_done_with_drag`, `required_power`, `coasting_energy_loss`, `distance_to_recharge`, `time_to_reach_velocity`) deliberately have only boundary/round-trip property tests, not exact-value ones — they're about to be rewritten with numerical methods for tapering, so locking in hand-typed constants for the current closed-form versions isn't worth it.
-- [ ] Unit test `Track` (segment data + `next()`/`prev()` wraparound) and `Optimizer::index_helper` (the flattened-index calculation that's caused the most repeat bugs this session — will need `FRIEND_TEST` since it's private). No DP integration tests yet — blocked on `Optimizer` hardcoding its own `Track` member, so there's currently no way to inject a small fake track to hand-verify DP output against.
+- [x] Unit test `Track` (segment data + `next()`/`prev()` wraparound) and `Optimizer::index_helper` (the flattened-index calculation that's caused the most repeat bugs this session — will need `FRIEND_TEST` since it's private). No DP integration tests yet — blocked on `Optimizer` hardcoding its own `Track` member, so there's currently no way to inject a small fake track to hand-verify DP output against.
 - [ ] clang-tidy + sanitizer builds (from the original CI plan below) — cheap to wire up now that a test suite exists to run under them; likely to catch more of the same bug class as the `Battery` constructor's uninitialized `harvest_limit` read found earlier this session.
 - [ ] Implement and bring in tapering function, alongside reworking the closed-form drag formulas in `physics.cpp` to numerical methods (a speed-dependent taper curve doesn't have a clean closed-form integral).
 - [ ] Performance: fix `segment_options()`'s redundant recomputation across `ending_battery`/`harvest` combinations that reach the same `(index, battery_charge)` state (known, deferred). Do this *after* the physics renovation above, not before — optimizing formulas that are about to be rewritten is wasted effort.
