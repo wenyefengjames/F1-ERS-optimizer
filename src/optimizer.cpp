@@ -423,7 +423,7 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, double exit_sp
         // std::cout << "deploy_dis: " << deploy_dis << "\t";
         // std::cout << "harvest_dis: " << harvest_dis << "\n";
 
-        TaperedDeploymentResult results = p::energy_deployed_with_taper(exit_speed, deploy_dis, mom);
+        auto results = p::energy_deployed_with_taper(exit_speed, deploy_dis, mom);
 
         const double ke_gained = p::kinetic_energy(results.speed_kmh) - ke_init_speed;
         const double speed = results.speed_kmh;

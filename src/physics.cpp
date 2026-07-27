@@ -122,7 +122,7 @@ namespace physics {
             double ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * DELTA_T / 3.6);
             current_kmh = reverse_ke(current_kmh, ke_gained);
             total_deployed_distance += current_kmh * DELTA_T / 3.6;
-            total_energy_deployed += (current_power + ICE) * DELTA_T * 1000;
+            total_energy_deployed += current_power * DELTA_T * 1000;
             total_time += DELTA_T;
         }
 
