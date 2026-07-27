@@ -24,7 +24,7 @@ namespace physics {
     inline constexpr double MGU_K = 350;                    // kW
     inline constexpr double ICE = 400;                      // kW
     inline constexpr double BRAKING_DECEL = 5.5 * 9.8;      // m/s^-2, assuming that the braking force is 5.5g
-    inline constexpr double DELTA_T = 0.001;                  // s, change in time for numerical approximation
+    inline constexpr double DELTA_T = 0.01;                  // s, change in time for numerical approximation
 
     // Kinetic energy at a given speed (no drag).
     // Input: speed, in km/h

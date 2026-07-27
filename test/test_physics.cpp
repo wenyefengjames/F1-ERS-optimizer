@@ -360,35 +360,60 @@ TEST(DragFormulaEdgeCases, InvalidInputsThrowNegative1){
     EXPECT_NEAR(p::drag(-10, true), -1, 5e-4);
 }
 
-
 // =========================================================================
-// Validating the deploying function with tapering
+// energy_deployed_with_taper -- numerical (Euler) integration over
+// transcendental drag formulas, so verified by property rather than a
+// hand-typed constant, same reasoning as the other Tier-B checks above.
 // =========================================================================
 
 struct DeployTaperCheck {double speed_kmh; bool mom; double distance, output_kmh;};
 
-class CheckDeployTaperFormula : public ::testing::TestWithParam<DeployTaperCheck> {};
+// Checking that the output speed is correct before tapering kicks in
+TEST(EnergyDeployedWithTaperProperties, MatchesUntaperedBelowThreshold) {
+    double vi = 100.0, distance = 5.0;
+    auto result = p::energy_deployed_with_taper(vi, distance, false);
 
-TEST_P(CheckDeployTaperFormula, CorrectValues){
-    DeployTaperCheck c = GetParam();
-    EXPECT_NEAR(p::energy_deployed_with_taper(c.speed_kmh, c.mom, c.distance).speed_kmh, c.output_kmh, 5e-4);
+    double untapered_energy = p::work_done_with_drag(p::MGU_K + p::ICE, vi, distance);
+    double untapered_speed = p::reverse_ke(vi, untapered_energy);
+
+    EXPECT_NEAR(result.speed_kmh, untapered_speed, untapered_speed * 0.01);
 }
 
-INSTANTIATE_TEST_SUITE_P(VariousCases, CheckDeployTaperFormula, ::testing::Values(
-    DeployTaperCheck{0, false, 0, 0},
-    DeployTaperCheck{100, false, 0, 100},
-    DeployTaperCheck{100, false, 30, 130},
-    DeployTaperCheck{200, false, 100, 300},
-    DeployTaperCheck{300, false, 100, 330},
-    DeployTaperCheck{0, true, 0, 0},
-    DeployTaperCheck{100, true, 0, 100},
-    DeployTaperCheck{100, true, 30, 130},
-    DeployTaperCheck{200, true, 100, 310},
-    DeployTaperCheck{300, true, 100, 340}
-));
+// Checking that tapering is working and the output speed should be strictly less than
+// The speed without tapering
+TEST(EnergyDeployedWithTaperProperties, TaperReducesFinalSpeedAboveThreshold) {
+    double vi = 280.0, distance = 300.0;
+    auto result = p::energy_deployed_with_taper(vi, distance, false);
 
+    double untapered_energy = p::work_done_with_drag(p::MGU_K + p::ICE, vi, distance);
+    double untapered_speed = p::reverse_ke(vi, untapered_energy);
 
-// TEST(DeployTaperFormulaEdgeCases, InvalidInputsThrowNegative1){
-//     EXPECT_NEAR(p::drag(-0.5, false), -1, 5e-4);
-//     EXPECT_NEAR(p::drag(-10, true), -1, 5e-4);
-// }
+    EXPECT_LT(result.speed_kmh, untapered_speed);
+}
+
+// Checks that the distance covered is at least the requested distance
+TEST(EnergyDeployedWithTaperProperties, CoversAtLeastRequestedDistance) {
+    double vi = 200.0, distance = 500.0;
+    auto result = p::energy_deployed_with_taper(vi, distance, false);
+
+    EXPECT_GE(result.distance_m, distance);
+    EXPECT_LT(result.distance_m, distance + (400.0 / 3.6) * p::DELTA_T);
+}
+
+// distance=0 should lead to every property unchanged
+TEST(EnergyDeployedWithTaperEdgeCase, ZeroDistanceReturnsUnchangedStartingState) {
+    double vi = 200.0;
+    auto result = p::energy_deployed_with_taper(vi, 0.0, false);
+
+    EXPECT_DOUBLE_EQ(result.speed_kmh, vi);
+    EXPECT_DOUBLE_EQ(result.energy_J, 0.0);
+    EXPECT_DOUBLE_EQ(result.time_s, 0.0);
+    EXPECT_DOUBLE_EQ(result.distance_m, 0.0);
+
+    result = p::energy_deployed_with_taper(vi, 0.0, true);
+
+    EXPECT_DOUBLE_EQ(result.speed_kmh, vi);
+    EXPECT_DOUBLE_EQ(result.energy_J, 0.0);
+    EXPECT_DOUBLE_EQ(result.time_s, 0.0);
+    EXPECT_DOUBLE_EQ(result.distance_m, 0.0);
+}
