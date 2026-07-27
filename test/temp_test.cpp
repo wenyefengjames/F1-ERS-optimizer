@@ -23,4 +23,8 @@ int main(){
     std::cout << "Energy: " << p::kinetic_energy(output.speed_kmh) - p::kinetic_energy(speed) << "\t";
     std::cout << "Energy without taper: " << energy << "\n";
 
+    double power = p::required_power(speed, 0, 200);
+    std::cout << "======================" << "\n";
+    std::cout << "Power output required" << power << "\n";
+
 }

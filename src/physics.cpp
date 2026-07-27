@@ -18,11 +18,19 @@ namespace physics {
     } 
 
     double reverse_ke(double initial_speed_kmh, double energy_J){
+        if(energy_J < 0 || initial_speed_kmh < 0){ // Input validity check
+            return -1;
+        }
+
         double speed_ms = initial_speed_kmh / 3.6;
         return std::sqrt(speed_ms * speed_ms + 2 * energy_J / MASS_KG) * 3.6;
     }
 
     double work_done_with_drag(double power_kW, double initial_speed_kmh, double distance_m){
+        if(power_kW > ICE + MGU_K || power_kW < 0 || initial_speed_kmh < 0 || distance_m < 0) {
+            return -1;
+        }
+
         double r = power_kW * 1000.0;
         double vi = initial_speed_kmh / 3.6;
 
@@ -32,25 +40,40 @@ namespace physics {
         return energy;
     }
 
-    double required_power(double initial_speed_kmh, double energy_target_J, double distance_m){
+    double required_power(double initial_speed_kmh, double energy_target_J, double distance_m, bool mom){
+        if(energy_target_J < 0 || initial_speed_kmh < 0 || distance_m < 0) {
+            return -1;
+        }
+
         double vi = initial_speed_kmh / 3.6;
         double decay = std::exp(-3.0 * DRAG_K * distance_m / MASS_KG);
-
         double r = (std::pow(vi * vi + 2.0 * energy_target_J / MASS_KG, 1.5) - std::pow(vi, 3.0) * decay)
                         * DRAG_K / (1.0 - decay);
+
+        // This means that the power required isn't achievable 
+        if(r > taper_curve(initial_speed_kmh, mom)){
+            return -1;
+        }
 
         return r;
     }
 
     double coasting_energy_loss(double initial_speed_kmh, double distance_m){
-        double vi = initial_speed_kmh / 3.6;
+        if(initial_speed_kmh < 0 || distance_m < 0) {
+            return -1;
+        }
 
+        double vi = initial_speed_kmh / 3.6;
         double energy = (MASS_KG * vi * vi / 2.0) * (1.0 - std::exp(-2.0 * DRAG_K * distance_m / MASS_KG));
 
         return energy;
     }
 
     double distance_to_recharge(double initial_speed_kmh, double energy_target_J, double power_kW){
+        if(initial_speed_kmh < 0 || energy_target_J < 0 || power_kW < 0) {
+            return -1;
+        }
+
         double vi = initial_speed_kmh / 3.6;
         double r = power_kW * 1000.0;
 
@@ -59,6 +82,26 @@ namespace physics {
                                 / (r / DRAG_K - std::pow(vi, 3.0)));
 
         return x;
+    }
+
+    //TO DO: INCOMPLETE
+    double time_to_travel_distance(double target_speed_kmh, double initial_speed_kmh, double power_kW, double distance, bool mom){
+        double vi = initial_speed_kmh / 3.6;
+        double v = target_speed_kmh / 3.6;
+        double P = power_kW * 1000.0;
+        double total_distance = 0.0;
+        double total_time = 0.0;
+        double current_kmh = initial_speed_kmh; 
+
+        while(total_distance < distance){
+            double current_power = taper_curve(current_kmh, mom);
+            double ke_gained = work_done_with_drag(power_kW + ICE, current_kmh, current_kmh * DELTA_T / 3.6);
+            current_kmh = reverse_ke(current_kmh, ke_gained);
+            total_distance += current_kmh * DELTA_T / 3.6;
+            total_time += DELTA_T;
+        }
+
+        return total_time;
     }
 
     double time_to_reach_velocity(double target_speed_kmh, double initial_speed_kmh, double power_kW){
@@ -129,6 +172,12 @@ namespace physics {
         TaperedDeploymentResult output = {current_kmh, total_energy_deployed, total_time, total_deployed_distance};
 
         return output; 
+    }
+
+    const std::vector<TaperedDeploymentResult>& taper_table(bool mom){
+        static const std::vector<TaperedDeploymentResult> no_mom = build_taper_table(false);
+        static const std::vector<TaperedDeploymentResult> mom_table = build_taper_table(true);
+        return mom ? mom_table : no_mom;
     }
 
     // Harvesting methods ==============================================================

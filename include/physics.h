@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 
 struct TaperedDeploymentResult{
     double speed_kmh = 0.0;
@@ -100,6 +101,14 @@ namespace physics {
     //         mom - indicates if the car has MOM
     // Output: energy gained with deployment, in Joules
     TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, bool mom);
+
+    // Constructs the lookup tables once, then cache them and returns the cached table
+    const std::vector<TaperedDeploymentResult>& taper_table(bool mom);
+
+    // Constructing the lookup table when tapering. 
+    // TO DO This function should be moved to private, 
+    // without living in the headers file once implemented and tested correctly. 
+    const std::vector<TaperedDeploymentResult> build_taper_table(bool mom);
 
     // Harvesting methods ==============================================================
 
