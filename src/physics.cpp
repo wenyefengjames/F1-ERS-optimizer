@@ -1,4 +1,5 @@
 #include "../include/physics.h"
+#include <cmath>
 
 namespace physics {
 
@@ -173,24 +174,6 @@ namespace physics {
         return output; 
     }
 
-    // Private function. This outputs the required lookup table for tapering
-    // Constructs the lookup tables once, then cache them and returns the cached table
-    const std::vector<TaperedDeploymentResult>& taper_table(bool mom, bool sm_on){
-        static const std::vector<TaperedDeploymentResult> no_mom_sm_table = build_taper_table(false, true);
-        static const std::vector<TaperedDeploymentResult> no_mom_no_sm_table = build_taper_table(false, false);
-        static const std::vector<TaperedDeploymentResult> mom_sm_table = build_taper_table(true, true);
-
-        if(mom){
-            if(sm_on) return mom_sm_table;
-            else return {}; // mom = true and sm_on = false won't have a table. 
-                            // It is very unlikely that the car will hit the taper entry speed
-        } 
-        else{
-            if(sm_on) return no_mom_sm_table;
-            else return no_mom_no_sm_table;
-        }
-    }
-
     // Private function. This builds the required lookup table for tapering
     std::vector<TaperedDeploymentResult> build_taper_table(bool mom, bool sm_on){
 
@@ -224,6 +207,24 @@ namespace physics {
         }
 
         return output;
+    }
+
+    // Private function. This outputs the required lookup table for tapering
+    // Constructs the lookup tables once, then cache them and returns the cached table
+    const std::vector<TaperedDeploymentResult>& taper_table(bool mom, bool sm_on){
+        static const std::vector<TaperedDeploymentResult> no_mom_sm_table = build_taper_table(false, true);
+        static const std::vector<TaperedDeploymentResult> no_mom_no_sm_table = build_taper_table(false, false);
+        static const std::vector<TaperedDeploymentResult> mom_sm_table = build_taper_table(true, true);
+
+        if(mom){
+            if(sm_on) return mom_sm_table;
+            else return {}; // mom = true and sm_on = false won't have a table. 
+                            // It is very unlikely that the car will hit the taper entry speed
+        } 
+        else{
+            if(sm_on) return no_mom_sm_table;
+            else return no_mom_no_sm_table;
+        }
     }
 
     // Harvesting methods ==============================================================
