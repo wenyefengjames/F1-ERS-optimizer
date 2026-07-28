@@ -49,7 +49,7 @@ namespace physics {
     //         initial_speed_kmh - initial speed, in km/h
     //         distance_m - distance travelled at this power, in meters
     // Output: kinetic energy gained, in Joules
-    double work_done_with_drag(double power_kW, double initial_speed_kmh, double distance_m);
+    double work_done_with_drag(double power_kW, double initial_speed_kmh, double distance_m, bool sm_on);
 
     // Inverse of work_done_with_drag: the constant engine power required to
     // gain energy_target_J of KE within distance_m, starting from initial_speed_kmh.
@@ -57,13 +57,13 @@ namespace physics {
     //         energy_target_J - kinetic energy that needs to be gained, in Joules
     //         distance_m - distance available to gain it, in meters
     // Output: required engine power, in Watts
-    double required_power(double initial_speed_kmh, double energy_target_J, double distance_m);
+    double required_power(double initial_speed_kmh, double energy_target_J, double distance_m, bool mom, bool sm_on);
 
     // Kinetic energy lost to drag while coasting (no throttle) over distance_m.
     // Inputs: initial_speed_kmh - initial speed, in km/h
     //         distance_m - distance travelled while coasting, in meters
     // Output: kinetic energy lost to drag, in Joules
-    double coasting_energy_loss(double initial_speed_kmh, double distance_m);
+    double coasting_energy_loss(double initial_speed_kmh, double distance_m, bool sm_on);
 
     // Distance needed, at constant engine power_kW, to gain energy_target_J
     // of KE starting from initial_speed_kmh.
@@ -71,7 +71,7 @@ namespace physics {
     //         energy_target_J - kinetic energy that needs to be gained, in Joules
     //         power_kW - constant engine power used to gain it, in kW
     // Output: distance required, in meters
-    double distance_to_recharge(double initial_speed_kmh, double energy_target_J, double power_kW);
+    double distance_to_recharge(double initial_speed_kmh, double energy_target_J, double power_kW, bool sm_on);
 
     // Time to accelerate from initial_speed_kmh to target_speed_kmh under
     // constant engine power_kW, net of drag.
@@ -94,21 +94,59 @@ namespace physics {
     // Output: drag force, in N
     double drag(double speed_kmh, bool sm_on);
 
+    // Calculates the drag coefficient of the car, independent of speed
+    // This is made a seperate function because in the future this can get more
+    // complicated, e.g. trailing a car will make drag coeff lower
+    // Inputs: sm_on - whether the car has straight mode or not
+    // Output: the drag coefficient, no unit (there is but i cba it doesn't matter)
+    double drag_coeff(bool sm_on);
+
     // For a given distance of deployment, estimate the amount of energy deployed
     // With consideration of tapering
     // Inputs: initial_kmh - initial speed, in km/h
     //         distance - how long to deploy energy for
     //         mom - indicates if the car has MOM
     // Output: energy gained with deployment, in Joules
-    TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, bool mom);
+    TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, bool mom, bool sm_on);
 
-    // Constructs the lookup tables once, then cache them and returns the cached table
-    const std::vector<TaperedDeploymentResult>& taper_table(bool mom);
+    // TODO: Leaving this function here for now. Remove this line from this file after testing
+    const std::vector<TaperedDeploymentResult>& taper_table(bool mom, bool sm_on);
 
-    // Constructing the lookup table when tapering. 
-    // TO DO This function should be moved to private, 
-    // without living in the headers file once implemented and tested correctly. 
-    const std::vector<TaperedDeploymentResult> build_taper_table(bool mom);
+    // Binary searches over taper tables. Returns std::nullopt if value not found
+    // Inputs: mom - indicates if the car has MOM
+    //         sm_on - indicates if the car has Straight line mode
+    //         query_value - value to find. Can be speed, time, energy and distance
+    //         get_field - lambda function that indicates what field the query_value belongs to
+    // Output: If value within range. Returns the other attributes associated with the query value
+    //         If value not in the table. Returns std::nullopt to indicate not in the table
+    template<typename T>
+    std::optional<TaperedDeploymentResult> search_taper_table(bool mom, bool sm_on,
+                                                    double query_value, T get_field){
+
+        auto comparitor = [get_field](const TaperedDeploymentResult& entry, double value)
+            {
+                return get_field(entry) < value;
+            };
+
+        std::vector<TaperedDeploymentResult> table = taper_table(mom, sm_on);
+
+        auto it = std::lower_bound(table.begin(), table.end(), query_value, comparitor);
+        
+        // Value doesn't exist in the table
+        if(it == table.begin() || it == table.end()) return std::nullopt;
+
+        auto lower = std::prev(it);
+        double field_lower = get_field(*lower);
+        double field_upper = get_field(*it);
+        double t = (query_value - field_lower) / (field_upper - field_lower);
+
+        return TaperedDeploymentResult{
+            std::lerp(lower->speed_kmh, it->speed_kmh, t),
+            std::lerp(lower->energy_J,  it->energy_J,  t),
+            std::lerp(lower->time_s,    it->time_s,    t),
+            std::lerp(lower->distance_m, it->distance_m, t)
+        };
+    };
 
     // Harvesting methods ==============================================================
 

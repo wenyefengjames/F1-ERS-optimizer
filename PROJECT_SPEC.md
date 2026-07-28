@@ -48,3 +48,30 @@ Future ideas that can be implemented: (Recorded here just in case forget):
 - Allow simulation for other tracks, not just Silverstone (Maybe even predict pole lap speed for future races)
 - 
 
+## Design decision: straight-mode vs corner-mode drag, and only 3 tapering lookup tables (not 4)
+
+Following on from the "straight line mode which reduces drag" idea above: the
+drag-involved physics formulas were all using one generic drag coefficient,
+not distinguishing straight-mode (low drag, DRS-open-equivalent) from
+corner-mode (higher drag). This matters specifically for MOM: reaching
+MOM's full-350kW threshold (337km/h) needs the lower straight-mode drag to
+be achievable at all within realistic power figures.
+
+Decision: build 3 tapering lookup tables, not the full 2x2 combination of
+{MOM, no-MOM} x {straight-mode, corner-mode}:
+- no-MOM + corner-mode
+- no-MOM + straight-mode
+- MOM + straight-mode
+
+Deliberately skipping MOM + corner-mode. This is **a design choice based on
+real circuit geometry, not a claim that it's physically impossible**: no
+real circuit has a corner long enough to sustain full-power acceleration up
+to 337km/h while still being classified as corner-mode. Any stretch of
+track long enough to do that would, by definition, be mapped as straight-mode
+instead — reducing drag and saving battery on long/near-straight sections is
+the entire point of straight-mode in the first place. So MOM+corner-mode is a
+combination that shouldn't come up given how the track itself gets
+classified, not a state the physics forbids.
+
+## Making the calculation of drag coefficient a seperate function
+This decision was made to allow future drag calculation to be easily integrated with more complexity. E.g. The function can bring in more parameters to consider like the distance that is trailing the car ahead, it will decrease the drag. This can be calculated seperately without affecting the functions that considers drag. Making the code more modular and maintainable. 

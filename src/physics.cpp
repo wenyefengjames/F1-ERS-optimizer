@@ -1,6 +1,7 @@
 #include "../include/physics.h"
 #include <cmath>
 #include <algorithm>
+#include <optional>
 
 namespace physics {
 
@@ -26,29 +27,28 @@ namespace physics {
         return std::sqrt(speed_ms * speed_ms + 2 * energy_J / MASS_KG) * 3.6;
     }
 
-    double work_done_with_drag(double power_kW, double initial_speed_kmh, double distance_m){
+    double work_done_with_drag(double power_kW, double initial_speed_kmh, double distance_m, bool sm_on){
         if(power_kW > ICE + MGU_K || power_kW < 0 || initial_speed_kmh < 0 || distance_m < 0) {
             return -1;
         }
 
         double r = power_kW * 1000.0;
         double vi = initial_speed_kmh / 3.6;
-
-        double energy = MASS_KG / 2.0 * (std::pow(r / DRAG_K - (r / DRAG_K - std::pow(vi, 3.0))
-                            * std::exp(-3.0 * DRAG_K * distance_m / MASS_KG), 2.0 / 3.0) - vi * vi);
+        double energy = MASS_KG / 2.0 * (std::pow(r / drag_coeff(sm_on) - (r / drag_coeff(sm_on) - std::pow(vi, 3.0))
+                            * std::exp(-3.0 * drag_coeff(sm_on) * distance_m / MASS_KG), 2.0 / 3.0) - vi * vi);
 
         return energy;
     }
 
-    double required_power(double initial_speed_kmh, double energy_target_J, double distance_m, bool mom){
+    double required_power(double initial_speed_kmh, double energy_target_J, double distance_m, bool mom, bool sm_on){
         if(energy_target_J < 0 || initial_speed_kmh < 0 || distance_m < 0) {
             return -1;
         }
 
         double vi = initial_speed_kmh / 3.6;
-        double decay = std::exp(-3.0 * DRAG_K * distance_m / MASS_KG);
+        double decay = std::exp(-3.0 * drag_coeff(sm_on) * distance_m / MASS_KG);
         double r = (std::pow(vi * vi + 2.0 * energy_target_J / MASS_KG, 1.5) - std::pow(vi, 3.0) * decay)
-                        * DRAG_K / (1.0 - decay);
+                        * drag_coeff(sm_on) / (1.0 - decay);
 
         // This means that the power required isn't achievable 
         if(r > taper_curve(initial_speed_kmh, mom)){
@@ -58,18 +58,18 @@ namespace physics {
         return r;
     }
 
-    double coasting_energy_loss(double initial_speed_kmh, double distance_m){
+    double coasting_energy_loss(double initial_speed_kmh, double distance_m, bool sm_on){
         if(initial_speed_kmh < 0 || distance_m < 0) {
             return -1;
         }
 
         double vi = initial_speed_kmh / 3.6;
-        double energy = (MASS_KG * vi * vi / 2.0) * (1.0 - std::exp(-2.0 * DRAG_K * distance_m / MASS_KG));
+        double energy = (MASS_KG * vi * vi / 2.0) * (1.0 - std::exp(-2.0 * drag_coeff(sm_on) * distance_m / MASS_KG));
 
         return energy;
     }
 
-    double distance_to_recharge(double initial_speed_kmh, double energy_target_J, double power_kW){
+    double distance_to_recharge(double initial_speed_kmh, double energy_target_J, double power_kW, bool sm_on){
         if(initial_speed_kmh < 0 || energy_target_J < 0 || power_kW < 0) {
             return -1;
         }
@@ -77,15 +77,15 @@ namespace physics {
         double vi = initial_speed_kmh / 3.6;
         double r = power_kW * 1000.0;
 
-        double x = (-MASS_KG / (3.0 * DRAG_K))
-                    * std::log((r / DRAG_K - std::pow(vi * vi + 2.0 * energy_target_J / MASS_KG, 1.5))
-                                / (r / DRAG_K - std::pow(vi, 3.0)));
+        double x = (-MASS_KG / (3.0 * drag_coeff(sm_on)))
+                    * std::log((r / drag_coeff(sm_on) - std::pow(vi * vi + 2.0 * energy_target_J / MASS_KG, 1.5))
+                                / (r / drag_coeff(sm_on) - std::pow(vi, 3.0)));
 
         return x;
     }
 
     //TO DO: INCOMPLETE
-    double time_to_travel_distance(double target_speed_kmh, double initial_speed_kmh, double power_kW, double distance, bool mom){
+    double time_to_travel_distance(double target_speed_kmh, double initial_speed_kmh, double power_kW, double distance, bool mom, bool sm_on){
         double vi = initial_speed_kmh / 3.6;
         double v = target_speed_kmh / 3.6;
         double P = power_kW * 1000.0;
@@ -95,9 +95,9 @@ namespace physics {
 
         while(total_distance < distance){
             double current_power = taper_curve(current_kmh, mom);
-            double ke_gained = work_done_with_drag(power_kW + ICE, current_kmh, current_kmh * DELTA_T / 3.6);
-            current_kmh = reverse_ke(current_kmh, ke_gained);
+            double ke_gained = work_done_with_drag(power_kW + ICE, current_kmh, current_kmh * DELTA_T / 3.6, sm_on);
             total_distance += current_kmh * DELTA_T / 3.6;
+            current_kmh = reverse_ke(current_kmh, ke_gained);
             total_time += DELTA_T;
         }
 
@@ -146,14 +146,17 @@ namespace physics {
 
         speed_kmh = speed_kmh / 3.6;
 
-        if(sm_on) {
-            return 0.5 * AIR_DENSITY * FRONTAL_AREA * SM_DRAG_COEFF * speed_kmh * speed_kmh;
-        } 
-        
-        return 0.5 * AIR_DENSITY * FRONTAL_AREA * CM_DRAG_COEFF * speed_kmh * speed_kmh;
+        return drag_coeff(sm_on) * speed_kmh * speed_kmh;
+    }
+    
+    double drag_coeff(bool sm_on){
+        static const double with_sm = 0.5 * AIR_DENSITY * FRONTAL_AREA * SM_DRAG_COEFF;
+        static const double without_sm = 0.5 * AIR_DENSITY * FRONTAL_AREA * CM_DRAG_COEFF;
+        if(sm_on) return with_sm;
+        else return without_sm;
     }
 
-    TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, bool mom){
+    TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, bool mom, bool sm_on){
         double current_kmh = initial_kmh; 
         double total_deployed_distance = 0.0;
         double total_energy_deployed = 0.0;
@@ -162,22 +165,68 @@ namespace physics {
         // Numerical method to approximate net KE gain
         while(total_deployed_distance < distance){
             double current_power = taper_curve(current_kmh, mom);
-            double ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * DELTA_T / 3.6);
-            current_kmh = reverse_ke(current_kmh, ke_gained);
+            double ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * DELTA_T / 3.6, sm_on);
             total_deployed_distance += current_kmh * DELTA_T / 3.6;
+            current_kmh = reverse_ke(current_kmh, ke_gained);
             total_energy_deployed += current_power * DELTA_T * 1000;
             total_time += DELTA_T;
         }
 
         TaperedDeploymentResult output = {current_kmh, total_energy_deployed, total_time, total_deployed_distance};
-
         return output; 
     }
 
-    const std::vector<TaperedDeploymentResult>& taper_table(bool mom){
-        static const std::vector<TaperedDeploymentResult> no_mom = build_taper_table(false);
-        static const std::vector<TaperedDeploymentResult> mom_table = build_taper_table(true);
-        return mom ? mom_table : no_mom;
+    // Private function. This outputs the required lookup table for tapering
+    // Constructs the lookup tables once, then cache them and returns the cached table
+    const std::vector<TaperedDeploymentResult>& taper_table(bool mom, bool sm_on){
+        static const std::vector<TaperedDeploymentResult> no_mom_sm_table = build_taper_table(false, true);
+        static const std::vector<TaperedDeploymentResult> no_mom_no_sm_table = build_taper_table(false, false);
+        static const std::vector<TaperedDeploymentResult> mom_sm_table = build_taper_table(true, true);
+
+        if(mom){
+            if(sm_on) return mom_sm_table;
+            else return {}; // mom = true and sm_on = false won't have a table. 
+                            // It is very unlikely that the car will hit the taper entry speed
+        } 
+        else{
+            if(sm_on) return no_mom_sm_table;
+            else return no_mom_no_sm_table;
+        }
+    }
+
+    // Private function. This builds the required lookup table for tapering
+    std::vector<TaperedDeploymentResult> build_taper_table(bool mom, bool sm_on){
+
+        std::vector<TaperedDeploymentResult> output;
+        double current_kmh = 0.0; 
+        double total_deployed_distance = 0.0;
+        double total_energy_deployed = 0.0;
+        double total_time = 0.0;
+        const double delta_t = 0.02; 
+        const double max_time = 4;
+
+        if(mom)current_kmh = 337; 
+        else   current_kmh = 290; 
+        
+        // This is to basically give table.begin() a meaning. If the value tried to search within
+        // the table is less than the minimum value, searching will give the iterator pointing to 
+        // table.begin(). This line makes sure that it is genuinely not in the table, rather than just
+        // the needed value is small so it wants the first field of the table.
+        output.push_back({current_kmh, total_energy_deployed, total_time, total_deployed_distance});
+
+        // Generate the table
+        while(total_time <= max_time && current_kmh <= 355){
+            double current_power = taper_curve(current_kmh, mom);
+            double ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * delta_t / 3.6, sm_on);
+            total_deployed_distance += current_kmh * delta_t / 3.6;
+            current_kmh = reverse_ke(current_kmh, ke_gained);
+            total_energy_deployed += current_power * delta_t * 1000;
+            total_time += delta_t;
+
+            output.push_back({current_kmh, total_energy_deployed, total_time, total_deployed_distance});
+        }
+
+        return output;
     }
 
     // Harvesting methods ==============================================================
