@@ -1,5 +1,9 @@
 #pragma once
 #include <vector>
+#include <optional>
+#include <algorithm>
+#include <cmath>
+#include <iterator>
 
 struct TaperedDeploymentResult{
     double speed_kmh = 0.0;

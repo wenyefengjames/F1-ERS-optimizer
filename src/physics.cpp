@@ -1,7 +1,4 @@
 #include "../include/physics.h"
-#include <cmath>
-#include <algorithm>
-#include <optional>
 
 namespace physics {
 
