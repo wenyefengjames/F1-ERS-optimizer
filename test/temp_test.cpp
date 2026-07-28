@@ -28,7 +28,7 @@ int main(){
     // std::cout << "======================" << "\n";
     // std::cout << "Power output required" << power << "\n";
 
-    bool mom = true;
+    bool mom = false;
     bool sm_on = true;
 
     std::vector<TaperedDeploymentResult> results = p::taper_table(mom, sm_on);
@@ -40,9 +40,15 @@ int main(){
         std::cout << "Energy: " << i.energy_J << "\n";
     }
 
-    double query = 290;
+    double query = 295;
     auto lambda_func = [](const TaperedDeploymentResult& field) {return field.speed_kmh;};
 
     std::optional<TaperedDeploymentResult> search_result = p::search_taper_table(mom, sm_on, query, lambda_func);
 
+    TaperedDeploymentResult result = search_result.value();
+
+    std::cout << "Speed: " << result.speed_kmh << "     ";
+    std::cout << "Time: " << result.time_s << "     ";
+    std::cout << "Distance: " << result.distance_m << "     ";
+    std::cout << "Energy: " << result.energy_J << "\n";
 }
