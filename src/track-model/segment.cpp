@@ -4,6 +4,10 @@ Segment::Segment(std::string name, std::string type, double length, double time)
                 : name(std::move(name)), type(std::move(type)), time(time), length(length){
 }
 
+Segment::Segment(std::string name, std::string type, double length, double time, bool sm)
+                : name(std::move(name)), type(std::move(type)), time(time), length(length), sm(sm){
+}
+
 std::string Segment::get_name() const{
     return this->name;
 }
@@ -15,6 +19,9 @@ double Segment::get_length() const{
 }
 double Segment::get_time() const{
     return this->time;
+}
+bool Segment::get_sm() const{
+    return this->sm;
 }
 
 Segment::~Segment() = default;

@@ -263,7 +263,7 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
     }
 
     const double ke_gain = p::kinetic_energy(target_speed) - p::kinetic_energy(current_speed);
-    const double power_output = p::required_power(current_speed, ke_gain, length) / 1000;
+    const double power_output = p::required_power(current_speed, ke_gain, length, mom, false) / 1000;
 
     // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
     // std::cout << "ke_gain: " << ke_gain << "\t";
@@ -355,6 +355,7 @@ std::vector<Option> Optimizer::option_table_slowcorner(int seg_index){
 // Producing a vector of Options for a Segment of Straight following with a FastCorner
 std::vector<Option> Optimizer::option_table_straight(int seg_index, double initial_battery){
     std::vector<Option> option_table;
+    bool sm = circuit.at(seg_index)->get_sm();
     int length = circuit.at(seg_index)->get_length();
     int bucket_num = std::round(p::BATTERY_CAPACITY / bucket_size * 2 + 1); // 1 for neutral, half of the rest goes to harvesting, other goes to deploy 
     double target_speed = 0.0;
@@ -396,12 +397,12 @@ std::vector<Option> Optimizer::option_table_straight(int seg_index, double initi
     // std::cout << "length: " << length << "\t";
     // std::cout << "init battery: " << initial_battery << "\n";
 
-    return best_option_for_bucket(length, exit_speed, target_speed, initial_battery);
+    return best_option_for_bucket(length, exit_speed, target_speed, initial_battery, sm);
 }
 
 // Loop through the optimal energy deployment method for every partition_size meter gap
 std::vector<Option> Optimizer::best_option_for_bucket(int length, double exit_speed, double target_speed,
-                                                      double initial_battery){
+                                                      double initial_battery, bool sm){
 
     double best_time = std::numeric_limits<double>::infinity();
     double total_time = std::numeric_limits<double>::infinity();
@@ -423,7 +424,7 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, double exit_sp
         // std::cout << "deploy_dis: " << deploy_dis << "\t";
         // std::cout << "harvest_dis: " << harvest_dis << "\n";
 
-        auto results = p::energy_deployed_with_taper(exit_speed, deploy_dis, mom);
+        auto results = p::energy_deployed_with_taper(exit_speed, deploy_dis, mom, sm);
 
         const double ke_gained = p::kinetic_energy(results.speed_kmh) - ke_init_speed;
         const double speed = results.speed_kmh;
@@ -444,7 +445,7 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, double exit_sp
         }
 
         const double ke_diff = p::kinetic_energy(speed) - ke_target_speed;
-        const double engine_power = p::required_power(speed, -ke_diff, harvest_dis);   // in Watts, not kW
+        const double engine_power = p::required_power(speed, -ke_diff, harvest_dis, mom, sm);   // in Watts, not kW
 
         // TESTING
         // std::cout << "ke_diff: " << ke_diff << "\t";

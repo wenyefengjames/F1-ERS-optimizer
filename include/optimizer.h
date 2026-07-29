@@ -30,7 +30,7 @@ class Optimizer{
         std::vector<Option> option_table_slowcorner(int seg_index);
         std::vector<Option> option_table_fastcorner(int seg_index, double initial_battery);  
         std::vector<Option> best_option_for_bucket(int length, double exit_speed, 
-                                         double target_speed, double initial_battery);
+                                                    double target_speed, double initial_battery, bool sm);
 
     public:
         // Helper function to flatten the 4D table into 1D by translating index positions

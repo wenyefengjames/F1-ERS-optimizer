@@ -7,5 +7,6 @@ class Straight : public Segment{
 
     public:
         Straight(std::string name, double length, double time);
+        Straight(std::string name, double length, double time, bool sm);
         
 };
