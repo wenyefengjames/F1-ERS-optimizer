@@ -5,4 +5,5 @@ build/
 *.pdb
 
 build-asan/
+
 *.docx
