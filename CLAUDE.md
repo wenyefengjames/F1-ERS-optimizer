@@ -116,7 +116,7 @@ Track representation:
 - [x] The length of every corner and straight measured
 - [x] The distance from corner entry to corner apex varies between corners, therefore more accurate representation of breaking
 - [x] Straight Mode included in straights that have them. Be aware of different starting positions of SM
-- [ ] MOM detection point
+- [ ] MOM detection point at the end of T17. Probably not something to implement in track model but be aware
 - [ ] Be aware that Hamilton Straight starts 50m before the S/F line of the next lap. There is 50m more for the car to travel after finishing the last corner (T18) 
 
 Physics model:
