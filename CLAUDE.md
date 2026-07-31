@@ -112,6 +112,7 @@ What should the second prototype look like:
 How to achieve each one ->
 
 Track representation:
+- [ ] Change the structure of Segment, Straight, FastCorner and SlowCorner classes to accomodate the new details and changes
 - [ ] The length of every corner and straight measured
 - [ ] The distance from corner entry to corner apex varies between corners, therefore more accurate representation of breaking
 - [ ] Straight Mode included in straights that have them. Be aware of different starting positions of SM
@@ -147,4 +148,10 @@ What the third prototype should look like:
 - Refined physics models, turbulant air awareness, which impacts laptime and downforce
 - Attacking mode
 - Defending mode
+- Implement different models to represent the downforce and aero package of cars from different teams
 - Make the data about silverstone circuit into a seperate file, so that in the future where if we have the same structure of track data from other circuit, we can easily integrate it into our optimizer.
+- With Slow corners, we have a baseline of the fastest time to get through the corners (referenced in qualifying), but it can be very damaging to the tires. So we can look at telementry and onboards to figure out how much drivers have slown down to manage tired and benefit in the long run. 
+
+## Fourth Prototype:
+- Implement different models to represent the downforce and aero package of cars from different teams (Because, if its a slower car in front, we could deploy less to get pass, which saves battery)
+- Implement different tire models that gives different grip, which impacts laptime
