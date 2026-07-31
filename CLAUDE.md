@@ -68,6 +68,7 @@ energy management a genuinely tight, interesting problem rather than a simple
 - header/.h files live in include/, source/.cpp files live in src/
 - In physics.cpp, physics work in Joules. In Battery class, energy is stored as MJ
 - Testing: Google Test — next up, see Progress log
+- Debugging: Clang-tidy, Sanitizer
 - Later: FastF1 (Python) for data, pybind11 for C++/Python bridge (tentative),
   GitHub Actions for CI, Docker
 
@@ -101,3 +102,48 @@ Act as a senior engineer doing code review, not as an implementer:
 
 ## MVP (ie the core prototype after 9 days)
 a CLI that takes no arguments (or minimal ones), builds the Silverstone segment list internally, runs the DP(or whatever optimization algorithm I make) for qualifying mode and race mode, and prints something like a per-segment table showing battery level and deployment decision, the change in delta when we decide to deploy/recharge at each segment, and total lap time — ideally alongside a naive baseline that we can compare to (e.g. "always deploy fully when possible", "never deploys", or "deploys the same amount in every segment") so the DP's improvement is visible and quantifiable, and we can compare the overall improvement in delta as well. More specific definitions and specifications can be found in PROJECT_SPEC.md.
+
+## The Second prototype (Deadline: 7th of August)
+What should the second prototype look like:
+- A more refined track representation
+- More realistic numerical physics equations
+- Optimizer takes into the account that with MOM we get 0.5 MJ more harvest per lap 
+
+How to achieve each one ->
+
+Track representation:
+- [ ] The length of every corner and straight measured
+- [ ] The distance from corner entry to corner apex varies between corners, therefore more accurate representation of breaking
+- [ ] Straight Mode included in straights that have them. Be aware of different starting positions of SM
+- [ ] MOM detection point
+- [ ] Be aware that Hamilton Straight starts 50m before the S/F line of the next lap. There is 50m more for the car to travel after finishing the last corner (T18) 
+
+Physics model:
+- [ ] Make every function Taper aware
+- [ ] Seperate the Drag Coefficient calculation from the drag formula, because it can vary in the future independent of speed
+- [ ] Straight Mode aware, as that reduces the Drag Coefficient
+- [ ] MOM aware, can reach a higher top-speed before Taper kicks in
+- [ ] Numerical method, because integration won't work anymore
+- [ ] Lookup table for Tapering, improve efficiency
+- [ ] Fix the problem that the time function doesn't give a reasonable output when the difference in speed is small
+
+Optimizer:
+- [ ] Integrate the new features of both Physics and Track into the DP algorithm correctly
+- [ ] Change the harvest limit depending on having MOM or not
+- [ ] Fix the bug that if I enter 0 starting battery and 0 ending battery, the output of laptime is inf
+- [ ] Implement Unit testing for Optimizer
+- [ ] Be aware that calculating the 
+- [ ] When deploying energy on the straight, change from a fixed max deployment of 350kW from MGU-K, to trying different values of deployment, for now it can be a fixed step-size of 25kW or 50kW
+
+Bug fixes:
+- [ ] Use clang-tidy improve coding quality
+- [ ] Optimizer: Fix the bug that if I enter 0 starting battery and 0 ending battery, the output of laptime is inf
+- [ ] Physics: Fix the bug that the time function doesn't give a reasonable output when the difference in speed is small
+- [ ] Performance: fix `segment_options()`'s redundant recomputation across `ending_battery`/`harvest` combinations that reach the same `(index, battery_charge)` state (known, deferred). Do this *after* the physics renovation above, not before — optimizing formulas that are about to be rewritten is wasted effort.
+
+
+## Third Prototype: (Deadline: 14th of August)
+What the third prototype should look like:
+- Refined physics models, turbulant air awareness, which impacts laptime and downforce
+- Attacking mode
+- Defending mode
