@@ -142,6 +142,9 @@ Bug fixes:
 - [ ] Physics: Fix the bug that the time function doesn't give a reasonable output when the difference in speed is small
 - [ ] Performance: fix `segment_options()`'s redundant recomputation across `ending_battery`/`harvest` combinations that reach the same `(index, battery_charge)` state (known, deferred). Do this *after* the physics renovation above, not before — optimizing formulas that are about to be rewritten is wasted effort.
 
+Limitation:
+- SlowCorners still rely on a fixed entry speed to calculate breaking energy. In the future, where to break to harvest the best can be calculated by the optimizer.
+
 
 ## Third Prototype: (Deadline: 14th of August)
 What the third prototype should look like:
