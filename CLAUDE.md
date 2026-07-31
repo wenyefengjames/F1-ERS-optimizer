@@ -147,3 +147,4 @@ What the third prototype should look like:
 - Refined physics models, turbulant air awareness, which impacts laptime and downforce
 - Attacking mode
 - Defending mode
+- Make the data about silverstone circuit into a seperate file, so that in the future where if we have the same structure of track data from other circuit, we can easily integrate it into our optimizer.
