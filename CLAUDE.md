@@ -112,10 +112,10 @@ What should the second prototype look like:
 How to achieve each one ->
 
 Track representation:
-- [ ] Change the structure of Segment, Straight, FastCorner and SlowCorner classes to accomodate the new details and changes
-- [ ] The length of every corner and straight measured
-- [ ] The distance from corner entry to corner apex varies between corners, therefore more accurate representation of breaking
-- [ ] Straight Mode included in straights that have them. Be aware of different starting positions of SM
+- [x] Change the structure of Segment, Straight, FastCorner and SlowCorner classes to accomodate the new details and changes
+- [x] The length of every corner and straight measured
+- [x] The distance from corner entry to corner apex varies between corners, therefore more accurate representation of breaking
+- [x] Straight Mode included in straights that have them. Be aware of different starting positions of SM
 - [ ] MOM detection point
 - [ ] Be aware that Hamilton Straight starts 50m before the S/F line of the next lap. There is 50m more for the car to travel after finishing the last corner (T18) 
 
