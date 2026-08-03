@@ -115,6 +115,24 @@ namespace physics {
                 current_kmh = reverse_ke(current_kmh, ke_gained);
                 total_energy_deployed += current_power * DELTA_T * 1000;
                 total_time += DELTA_T;
+
+                // Check if the current speed has hit the tapering limit
+                if((current_kmh >= 290 && !mom) || (current_kmh >= 337 && mom)) {
+                    double remaining_distance = distance_m - total_deployed_distance;
+
+                    auto query = [](const TaperedDeploymentResult& field){return field.speed_kmh;};
+                    auto result = search_taper_table(mom, sm_on, final_speed_kmh, query);
+
+                    if(result == std::nullopt) continue;
+
+                    if(result->distance_m > distance_m) return std::nullopt;
+
+                    // After adding these values the loop should exit
+                    total_time += result->time_s;
+                    total_deployed_distance += result->distance_m;
+                    total_energy_deployed += result->energy_J;
+                    current_kmh = result->speed_kmh;
+                }
             }
             
             // Speed not reachable
@@ -197,6 +215,22 @@ namespace physics {
             current_kmh = reverse_ke(current_kmh, ke_gained);
             total_energy_deployed += current_power * DELTA_T * 1000;
             total_time += DELTA_T;
+
+            // Check if the current speed has hit the tapering limit
+            if((current_kmh >= 290 && !mom) || (current_kmh >= 337 && mom)) {
+                double remaining_distance = distance - total_deployed_distance;
+
+                auto query = [](const TaperedDeploymentResult& field){return field.distance_m;};
+                auto result = search_taper_table(mom, sm_on, remaining_distance, query);
+
+                if(result == std::nullopt) continue;
+
+                // After adding these values the loop should exit
+                total_time += result->time_s;
+                total_deployed_distance += result->distance_m;
+                total_energy_deployed += result->energy_J;
+                current_kmh = result->speed_kmh;
+            }
         }
 
         TaperedDeploymentResult output = {current_kmh, total_energy_deployed, total_time, total_deployed_distance};
@@ -240,15 +274,16 @@ namespace physics {
 
     // Private function. This outputs the required lookup table for tapering
     // Constructs the lookup tables once, then cache them and returns the cached table
-    const std::vector<TaperedDeploymentResult>& taper_table(bool mom, bool sm_on){
-        static const std::vector<TaperedDeploymentResult> no_mom_sm_table = build_taper_table(false, true);
-        static const std::vector<TaperedDeploymentResult> no_mom_no_sm_table = build_taper_table(false, false);
-        static const std::vector<TaperedDeploymentResult> mom_sm_table = build_taper_table(true, true);
+    const std::optional<std::vector<TaperedDeploymentResult>>& taper_table(bool mom, bool sm_on){
+        static const std::optional<std::vector<TaperedDeploymentResult>> no_mom_sm_table = build_taper_table(false, true);
+        static const std::optional<std::vector<TaperedDeploymentResult>> no_mom_no_sm_table = build_taper_table(false, false);
+        static const std::optional<std::vector<TaperedDeploymentResult>> mom_sm_table = build_taper_table(true, true);
+        static const std::optional<std::vector<TaperedDeploymentResult>> no_table = std::nullopt;
 
         if(mom){
             if(sm_on) return mom_sm_table;
-            else return {}; // mom = true and sm_on = false won't have a table. 
-                            // It is very unlikely that the car will hit the taper entry speed
+            else return no_table;   // mom = true and sm_on = false won't have a table. 
+                                    // It is very unlikely that the car will hit the taper entry speed
         } 
         else{
             if(sm_on) return no_mom_sm_table;

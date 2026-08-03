@@ -132,7 +132,7 @@ namespace physics {
     TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, bool mom, bool sm_on);
 
     // TODO: Leaving this function here for now. Remove this line from this file after testing
-    const std::vector<TaperedDeploymentResult>& taper_table(bool mom, bool sm_on);
+    const std::optional<std::vector<TaperedDeploymentResult>>& taper_table(bool mom, bool sm_on);
 
     // Binary searches over taper tables. Returns std::nullopt if value not found
     // Inputs: mom - indicates if the car has MOM
@@ -150,12 +150,13 @@ namespace physics {
                 return get_field(entry) < value;
             };
 
-        std::vector<TaperedDeploymentResult> table = taper_table(mom, sm_on);
+        const std::optional<std::vector<TaperedDeploymentResult>>& table = taper_table(mom, sm_on);
+        if (table == std::nullopt) return std::nullopt;
 
-        auto it = std::lower_bound(table.begin(), table.end(), query_value, comparitor);
+        auto it = std::lower_bound(table->begin(), table->end(), query_value, comparitor);
         
         // Value doesn't exist in the table
-        if(it == table.begin() || it == table.end()) return std::nullopt;
+        if(it == table->begin() || it == table->end()) return std::nullopt;
 
         auto lower = std::prev(it);
         double field_lower = get_field(*lower);
