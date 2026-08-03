@@ -24,7 +24,7 @@ add_library(ERSCore
     src/track-model/straight.cpp
     src/battery.cpp
     src/car.cpp
-    #src/optimizer.cpp
+    src/optimizer.cpp
     src/physics.cpp
 )
 target_include_directories(ERSCore PUBLIC include)
@@ -49,7 +49,7 @@ add_executable(unit_tests
     test/test_car.cpp
     test/test_track.cpp
     test/test_physics.cpp
-    #test/test_optimizer.cpp
+    test/test_optimizer.cpp
 )
 target_link_libraries(unit_tests PRIVATE ERSCore GTest::gtest_main)
 
