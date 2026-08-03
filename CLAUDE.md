@@ -111,7 +111,7 @@ What should the second prototype look like:
 
 How to achieve each one ->
 
-Track representation:
+[ ] Track representation:
 - [x] Change the structure of Segment, Straight, FastCorner and SlowCorner classes to accomodate the new details and changes
 - [x] The length of every corner and straight measured
 - [x] The distance from corner entry to corner apex varies between corners, therefore more accurate representation of breaking
@@ -119,7 +119,7 @@ Track representation:
 - [ ] MOM detection point at the end of T17. Probably not something to implement in track model but be aware
 - [ ] Be aware that Hamilton Straight starts 50m before the S/F line of the next lap. There is 50m more for the car to travel after finishing the last corner (T18) 
 
-Physics model:
+[x] Physics model:
 - [x] Make every function Taper aware -- with one deliberate exception: `work_done_with_drag`, `distance_to_recharge`, and `time_to_reach_velocity` stay taper-agnostic on purpose (plain constant power in, no `taper_curve` knowledge). Tapering is applied by whichever function calls them repeatedly with recomputed power instead (`energy_deployed_with_taper` `time_to_reach_speed_over_distance`, `build_taper_table`).
 - [x] Seperate the Drag Coefficient calculation from the drag formula, because it can vary in the future independent of speed
 - [x] Straight Mode aware, as that reduces the Drag Coefficient -- `sm_on` now threaded through every drag-involving function.
@@ -128,7 +128,7 @@ Physics model:
 - [x] Lookup table for Tapering, improve efficiency -- `build_taper_table` / `taper_table` / `search_taper_table`.
 - [x] Fix the problem that the time function doesn't give a reasonable output when the difference in speed is small -- fixed for the case that actually mattered (`vi == vf` exactly), via `time_to_reach_speed_over_distance`'s dedicated cruise branch, which never touches the degenerate antiderivative for that case. Near-equal-but-not-exactly-equal speeds were also manually stress-tested (`temp_test.cpp`, sweeping the gap down to ~0.001km/h) at the specific power where this is riskiest -- a tiny gap implies a "hold speed constant" power, whose terminal velocity sits right on the antiderivative's `log|a-vel|` singularity -- and the result converged smoothly with no instability. So the only genuinely broken case is exact equality, which is already handled separately.
 
-Optimizer:
+[ ] Optimizer:
 - [ ] Integrate the new features of both Physics and Track into the DP algorithm correctly
 - [ ] Change the harvest limit depending on having MOM or not
 - [ ] Fix the bug that if I enter 0 starting battery and 0 ending battery, the output of laptime is inf
@@ -139,7 +139,7 @@ Optimizer:
 Bug fixes:
 - [ ] Use clang-tidy improve coding quality
 - [ ] Optimizer: Fix the bug that if I enter 0 starting battery and 0 ending battery, the output of laptime is inf
-- [ ] Physics: Fix the bug that the time function doesn't give a reasonable output when the difference in speed is small
+- [x] Physics: Fix the bug that the time function doesn't give a reasonable output when the difference in speed is small
 - [ ] Performance: fix `segment_options()`'s redundant recomputation across `ending_battery`/`harvest` combinations that reach the same `(index, battery_charge)` state (known, deferred). Do this *after* the physics renovation above, not before — optimizing formulas that are about to be rewritten is wasted effort.
 
 Limitation:
