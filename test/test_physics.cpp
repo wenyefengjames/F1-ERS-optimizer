@@ -13,7 +13,7 @@ class CheckKE2SpeedFormula : public ::testing::TestWithParam<KE2SpeedCheck>{};
 // Test the correctness of kinetic_energy()
 TEST_P(CheckKEFormula, CheckCorrectRandomValues) {
     KECheck k = GetParam();
-    EXPECT_NEAR(p::kinetic_energy(k.input_speed_kmh), k.output_energy_J, 5e-4); // 5e-4 should be an error between 3-4 decimal places
+    EXPECT_NEAR(p::kinetic_energy(k.input_speed_kmh), k.output_energy_J, 5e-4); // 5e-4 should be the error range between 3-4 decimal places
 }
 
 INSTANTIATE_TEST_SUITE_P(VariousCases, CheckKEFormula, ::testing::Values(
@@ -64,11 +64,9 @@ INSTANTIATE_TEST_SUITE_P(VariousCases, CheckReverseKEFormula, ::testing::Values(
     ReverseKECheck{64.8, -124416, 0}               // 18 -> 0 m/s (all added KE removed again)
 ));
 
-// No validity check like ke_to_speed's -- removing more energy than the car
-// currently has drives the sqrt argument negative, silently producing NaN.
-TEST(ReverseKeEdgeCase, ReturnsNanWhenRemovingMoreEnergyThanCarHas) {
-    double result = p::reverse_ke(64.8, -200000.0);
-    EXPECT_TRUE(std::isnan(result));
+// Validity check will produce -1
+TEST(ReverseKeEdgeCase, ReturnsNeg1WhenRemovingMoreEnergyThanCarHas) {
+    EXPECT_DOUBLE_EQ(p::reverse_ke(64.8, -200000.0), -1);
 }
 
 // =========================================================================
@@ -78,35 +76,50 @@ TEST(ReverseKeEdgeCase, ReturnsNanWhenRemovingMoreEnergyThanCarHas) {
 // checks in physics_check.cpp, translated into GoogleTest.
 // =========================================================================
 TEST(WorkDoneWithDragProperties, ZeroAtZeroDistance) {
-    EXPECT_NEAR(p::work_done_with_drag(300.0, 150.0, 0.0), 0.0, 1e-3);
+    EXPECT_NEAR(p::work_done_with_drag(300.0, 150.0, 0.0, false), 0.0, 1e-3);
 }
 
 TEST(WorkDoneWithDragProperties, IncreasesWithDistance) {
-    double e_100m = p::work_done_with_drag(300.0, 150.0, 100.0);
-    double e_200m = p::work_done_with_drag(300.0, 150.0, 200.0);
+    double e_100m = p::work_done_with_drag(300.0, 150.0, 100.0, false);
+    double e_200m = p::work_done_with_drag(300.0, 150.0, 200.0, false);
     EXPECT_GT(e_200m, e_100m);
 }
 
 TEST(WorkDoneWithDragProperties, IncreasesWithPower) {
-    double e_200kw = p::work_done_with_drag(200.0, 150.0, 100.0);
-    double e_300kw = p::work_done_with_drag(300.0, 150.0, 100.0);
+    double e_200kw = p::work_done_with_drag(200.0, 150.0, 100.0, false);
+    double e_300kw = p::work_done_with_drag(300.0, 150.0, 100.0, false);
     EXPECT_GT(e_300kw, e_200kw);
 }
 
-// At zero engine power the only thing happening is drag -- the formula
-// should collapse to exactly the negative of coasting_energy_loss.
-TEST(WorkDoneWithDragProperties, ZeroPowerMatchesNegativeCoastingLoss) {
-    double vi = 150.0, x = 100.0;
-    EXPECT_NEAR(p::work_done_with_drag(0.0, vi, x), -p::coasting_energy_loss(vi, x), 1e-3);
+// At zero engine power the only thing happening is drag, so the KE change
+// should be a pure loss (negative), growing with distance, and -- since
+// terminal velocity for zero power is 0 -- approaching -kinetic_energy(vi)
+// over a long enough distance. This is the power=0 special case of the
+// same asymptote ApproachesTerminalVelocityKeAtLargeDistance checks below
+// for nonzero power, so it doesn't need a separate coasting-only formula
+// as a reference.
+TEST(WorkDoneWithDragProperties, ZeroPowerIsAPureLossApproachingNegativeInitialKe) {
+    double vi = 150.0;
+    bool sm_on = false;
+    double loss_short = p::work_done_with_drag(0.0, vi, 100.0, sm_on);
+    double loss_far = p::work_done_with_drag(0.0, vi, 1e7, sm_on);
+
+    EXPECT_LT(loss_short, 0.0);
+    EXPECT_LT(loss_far, loss_short); // more distance, more lost
+    EXPECT_NEAR(loss_far, -p::kinetic_energy(vi), 100.0);
 }
 
 // As distance -> infinity the car settles at terminal velocity a = (P/k)^(1/3),
 // so the KE gained should approach kinetic_energy(terminal_speed) - kinetic_energy(vi).
+// Uses drag_coeff(sm_on) rather than the old DRAG_K constant now, since
+// work_done_with_drag switched to the mode-dependent coefficient -- the
+// terminal velocity implied by a given power now depends on sm_on too.
 TEST(WorkDoneWithDragProperties, ApproachesTerminalVelocityKeAtLargeDistance) {
     double power_kW = 300.0, vi = 150.0;
-    double terminal_speed_kmh = std::pow(power_kW * 1000.0 / p::DRAG_K, 1.0 / 3.0) * 3.6;
+    bool sm_on = false;
+    double terminal_speed_kmh = std::pow(power_kW * 1000.0 / p::drag_coeff(sm_on), 1.0 / 3.0) * 3.6;
     double expected = p::kinetic_energy(terminal_speed_kmh) - p::kinetic_energy(vi);
-    EXPECT_NEAR(p::work_done_with_drag(power_kW, vi, 1e7), expected, 100.0);
+    EXPECT_NEAR(p::work_done_with_drag(power_kW, vi, 1e7, sm_on), expected, 100.0);
 }
 
 // =========================================================================
@@ -118,15 +131,17 @@ TEST(WorkDoneWithDragProperties, ApproachesTerminalVelocityKeAtLargeDistance) {
 // =========================================================================
 TEST(RequiredPowerProperties, RecoversOriginalPower) {
     double vi = 150.0, x = 100.0, power_kW = 300.0;
-    double energy_target = p::work_done_with_drag(power_kW, vi, x);
-    double required_power_W = p::required_power(vi, energy_target, x);
+    bool mom = false, sm_on = false;
+    double energy_target = p::work_done_with_drag(power_kW, vi, x, sm_on);
+    double required_power_W = p::required_power(vi, energy_target, x, mom, sm_on);
     EXPECT_NEAR(required_power_W / 1000.0, power_kW, 1e-2);
 }
 
 TEST(DistanceToRechargeProperties, RecoversOriginalDistance) {
     double vi = 150.0, x = 100.0, power_kW = 300.0;
-    double energy_target = p::work_done_with_drag(power_kW, vi, x);
-    double recovered_distance = p::distance_to_recharge(vi, energy_target, power_kW);
+    bool sm_on = false;
+    double energy_target = p::work_done_with_drag(power_kW, vi, x, sm_on);
+    double recovered_distance = p::distance_to_recharge(vi, energy_target, power_kW, sm_on);
     EXPECT_NEAR(recovered_distance, x, 1e-2);
 }
 
@@ -136,29 +151,8 @@ TEST(DistanceToRechargeProperties, RecoversOriginalDistance) {
 TEST(DistanceToRechargeEdgeCase, ReturnsNanWhenTargetExceedsTerminalVelocity) {
     double vi = 150.0, power_kW = 300.0;
     double unreachable_target_energy = p::kinetic_energy(1000.0) - p::kinetic_energy(vi);
-    double result = p::distance_to_recharge(vi, unreachable_target_energy, power_kW);
+    double result = p::distance_to_recharge(vi, unreachable_target_energy, power_kW, false);
     EXPECT_TRUE(std::isnan(result));
-}
-
-// =========================================================================
-// coasting_energy_loss
-// =========================================================================
-TEST(CoastingEnergyLossProperties, ZeroAtZeroDistance) {
-    EXPECT_NEAR(p::coasting_energy_loss(150.0, 0.0), 0.0, 1e-3);
-}
-
-TEST(CoastingEnergyLossProperties, IncreasesWithDistance) {
-    double loss_100m = p::coasting_energy_loss(150.0, 100.0);
-    double loss_1000m = p::coasting_energy_loss(150.0, 1000.0);
-    EXPECT_GT(loss_1000m, loss_100m);
-}
-
-TEST(CoastingEnergyLossProperties, NeverExceedsInitialKineticEnergy) {
-    double vi = 150.0;
-    double ke_vi = p::kinetic_energy(vi);
-    double loss_far = p::coasting_energy_loss(vi, 1e7);
-    EXPECT_LE(loss_far, ke_vi + 1e-6);
-    EXPECT_NEAR(loss_far, ke_vi, 100.0); // approaches it over a long enough coast
 }
 
 // =========================================================================
@@ -166,23 +160,23 @@ TEST(CoastingEnergyLossProperties, NeverExceedsInitialKineticEnergy) {
 // via boundary + monotonicity, not a hand-typed constant.
 // =========================================================================
 TEST(TimeToReachVelocityProperties, ZeroWhenTargetEqualsInitial) {
-    EXPECT_NEAR(p::time_to_reach_velocity(150.0, 150.0, 300.0), 0.0, 1e-6);
+    EXPECT_NEAR(p::time_to_reach_velocity(150.0, 150.0, 300.0, false), 0.0, 1e-6);
 }
 
 // The second target here is deliberately close to this power's terminal
-// velocity (terminal speed ~= 305.7 km/h for 300kW) rather than an arbitrary
-// round number -- the closer the target gets to the asymptote, the more time
-// it should take, which this also exercises.
+// velocity under corner-mode drag (terminal speed ~= 305.7 km/h for 300kW)
+// rather than an arbitrary round number -- the closer the target gets to
+// the asymptote, the more time it should take, which this also exercises.
 TEST(TimeToReachVelocityProperties, IncreasesWithTargetSpeed) {
-    double t_to_150 = p::time_to_reach_velocity(150.0, 100.0, 300.0);
-    double t_to_290 = p::time_to_reach_velocity(290.0, 100.0, 300.0);
+    double t_to_150 = p::time_to_reach_velocity(150.0, 100.0, 300.0, false);
+    double t_to_290 = p::time_to_reach_velocity(290.0, 100.0, 300.0, false);
     EXPECT_GT(t_to_150, 0.0);
     EXPECT_GT(t_to_290, t_to_150);
 }
 
 TEST(TimeToReachVelocityProperties, HigherPowerTakesLessTimeForSameTarget) {
-    double t_300kw = p::time_to_reach_velocity(250.0, 100.0, 300.0);
-    double t_400kw = p::time_to_reach_velocity(250.0, 100.0, 400.0);
+    double t_300kw = p::time_to_reach_velocity(250.0, 100.0, 300.0, false);
+    double t_400kw = p::time_to_reach_velocity(250.0, 100.0, 400.0, false);
     EXPECT_GT(t_300kw, t_400kw);
 }
 
@@ -368,12 +362,15 @@ TEST(DragFormulaEdgeCases, InvalidInputsThrowNegative1){
 
 struct DeployTaperCheck {double speed_kmh; bool mom; double distance, output_kmh;};
 
-// Checking that the output speed is correct before tapering kicks in
+// Checking that the output speed is correct before tapering kicks in. Both
+// calls must share the same sm_on -- drag_coeff(sm_on) has to match on both
+// sides for "matches the untapered closed form" to mean anything.
 TEST(EnergyDeployedWithTaperProperties, MatchesUntaperedBelowThreshold) {
     double vi = 100.0, distance = 5.0;
-    auto result = p::energy_deployed_with_taper(vi, distance, false);
+    bool sm_on = false;
+    auto result = p::energy_deployed_with_taper(vi, distance, false, sm_on);
 
-    double untapered_energy = p::work_done_with_drag(p::MGU_K + p::ICE, vi, distance);
+    double untapered_energy = p::work_done_with_drag(p::MGU_K + p::ICE, vi, distance, sm_on);
     double untapered_speed = p::reverse_ke(vi, untapered_energy);
 
     EXPECT_NEAR(result.speed_kmh, untapered_speed, untapered_speed * 0.01);
@@ -383,9 +380,10 @@ TEST(EnergyDeployedWithTaperProperties, MatchesUntaperedBelowThreshold) {
 // The speed without tapering
 TEST(EnergyDeployedWithTaperProperties, TaperReducesFinalSpeedAboveThreshold) {
     double vi = 280.0, distance = 300.0;
-    auto result = p::energy_deployed_with_taper(vi, distance, false);
+    bool sm_on = false;
+    auto result = p::energy_deployed_with_taper(vi, distance, false, sm_on);
 
-    double untapered_energy = p::work_done_with_drag(p::MGU_K + p::ICE, vi, distance);
+    double untapered_energy = p::work_done_with_drag(p::MGU_K + p::ICE, vi, distance, sm_on);
     double untapered_speed = p::reverse_ke(vi, untapered_energy);
 
     EXPECT_LT(result.speed_kmh, untapered_speed);
@@ -394,26 +392,207 @@ TEST(EnergyDeployedWithTaperProperties, TaperReducesFinalSpeedAboveThreshold) {
 // Checks that the distance covered is at least the requested distance
 TEST(EnergyDeployedWithTaperProperties, CoversAtLeastRequestedDistance) {
     double vi = 200.0, distance = 500.0;
-    auto result = p::energy_deployed_with_taper(vi, distance, false);
+    auto result = p::energy_deployed_with_taper(vi, distance, false, false);
 
     EXPECT_GE(result.distance_m, distance);
     EXPECT_LT(result.distance_m, distance + (400.0 / 3.6) * p::DELTA_T);
 }
 
-// distance=0 should lead to every property unchanged
-TEST(EnergyDeployedWithTaperEdgeCase, ZeroDistanceReturnsUnchangedStartingState) {
+// distance=0 should lead to every property unchanged, regardless of mom/sm_on --
+// parameterized over all 4 combinations since the loop body never runs either way.
+struct ZeroDistanceCheck { bool mom; bool sm_on; };
+
+class CheckZeroDistanceEdgeCase : public ::testing::TestWithParam<ZeroDistanceCheck> {};
+
+TEST_P(CheckZeroDistanceEdgeCase, ReturnsUnchangedStartingState) {
+    ZeroDistanceCheck c = GetParam();
     double vi = 200.0;
-    auto result = p::energy_deployed_with_taper(vi, 0.0, false);
+    auto result = p::energy_deployed_with_taper(vi, 0.0, c.mom, c.sm_on);
 
     EXPECT_DOUBLE_EQ(result.speed_kmh, vi);
     EXPECT_DOUBLE_EQ(result.energy_J, 0.0);
     EXPECT_DOUBLE_EQ(result.time_s, 0.0);
     EXPECT_DOUBLE_EQ(result.distance_m, 0.0);
+}
 
-    result = p::energy_deployed_with_taper(vi, 0.0, true);
+INSTANTIATE_TEST_SUITE_P(AllModeCombinations, CheckZeroDistanceEdgeCase, ::testing::Values(
+    ZeroDistanceCheck{false, false},
+    ZeroDistanceCheck{false, true},
+    ZeroDistanceCheck{true, false},
+    ZeroDistanceCheck{true, true}
+));
 
-    EXPECT_DOUBLE_EQ(result.speed_kmh, vi);
-    EXPECT_DOUBLE_EQ(result.energy_J, 0.0);
-    EXPECT_DOUBLE_EQ(result.time_s, 0.0);
-    EXPECT_DOUBLE_EQ(result.distance_m, 0.0);
+// =========================================================================
+// drag_coeff -- simple mode switch, hand-computable exactly.
+// =========================================================================
+TEST(DragCoeffTest, MatchesExpectedValuesForBothModes) {
+    EXPECT_NEAR(p::drag_coeff(true), 0.6216875, 1e-7);   // straight mode: 0.5*1.225*1.45*0.7
+    EXPECT_NEAR(p::drag_coeff(false), 0.888125, 1e-7);   // corner mode:   0.5*1.225*1.45*1.0
+}
+
+TEST(DragCoeffTest, StraightModeHasLowerDragThanCornerMode) {
+    EXPECT_LT(p::drag_coeff(true), p::drag_coeff(false));
+}
+
+// =========================================================================
+// search_taper_table -- the table itself is built by numerical (Euler)
+// integration, so its exact contents can't be hand-typed. Verified instead
+// by property: searching by the field you searched on should return
+// (almost exactly) the query value back; searching by a different field for
+// the value just found should agree with it; out-of-range queries should
+// return nullopt.
+//
+// Only (mom=false,sm_on=false), (mom=false,sm_on=true), and (mom=true,sm_on=true)
+// are exercised here. taper_table(true, false) returns a reference to a
+// destroyed temporary (`return {};` on a `const vector&`-returning function --
+// flagged in an earlier review), so calling search_taper_table with that
+// combination is undefined behavior, not just "untested."
+// =========================================================================
+TEST(SearchTaperTableProperties, SearchingBySpeedReturnsMatchingSpeedBack) {
+    const auto& table = p::taper_table(false, true);
+    ASSERT_GT(table.size(), 2u);
+    double query = (table.front().speed_kmh + table.back().speed_kmh) / 2.0;
+
+    auto by_speed = [](const TaperedDeploymentResult& e){ return e.speed_kmh; };
+    auto result = p::search_taper_table(false, true, query, by_speed);
+
+    ASSERT_TRUE(result.has_value());
+    EXPECT_NEAR(result->speed_kmh, query, 1e-6);
+}
+
+TEST(SearchTaperTableProperties, SearchingByDifferentFieldsAgreesWithEachOther) {
+    const auto& table = p::taper_table(false, true);
+    ASSERT_GT(table.size(), 2u);
+    double query_speed = (table.front().speed_kmh + table.back().speed_kmh) / 2.0;
+
+    auto by_speed = [](const TaperedDeploymentResult& e){ return e.speed_kmh; };
+    auto by_time  = [](const TaperedDeploymentResult& e){ return e.time_s; };
+
+    auto result_by_speed = p::search_taper_table(false, true, query_speed, by_speed);
+    ASSERT_TRUE(result_by_speed.has_value());
+
+    auto result_by_time = p::search_taper_table(false, true, result_by_speed->time_s, by_time);
+    ASSERT_TRUE(result_by_time.has_value());
+
+    EXPECT_NEAR(result_by_time->speed_kmh, result_by_speed->speed_kmh, 1e-3);
+}
+
+TEST(SearchTaperTableProperties, WorksForMomTableToo) {
+    const auto& table = p::taper_table(true, true);
+    ASSERT_GT(table.size(), 2u);
+    double query = (table.front().speed_kmh + table.back().speed_kmh) / 2.0;
+
+    auto by_speed = [](const TaperedDeploymentResult& e){ return e.speed_kmh; };
+    auto result = p::search_taper_table(true, true, query, by_speed);
+
+    ASSERT_TRUE(result.has_value());
+    EXPECT_NEAR(result->speed_kmh, query, 1e-6);
+}
+
+TEST(SearchTaperTableEdgeCase, ReturnsNulloptWhenQueryBelowTableStart) {
+    auto by_speed = [](const TaperedDeploymentResult& e){ return e.speed_kmh; };
+    auto result = p::search_taper_table(false, true, 100.0, by_speed); // below the 290 km/h taper threshold entirely
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST(SearchTaperTableEdgeCase, ReturnsNulloptWhenQueryAboveTableEnd) {
+    auto by_speed = [](const TaperedDeploymentResult& e){ return e.speed_kmh; };
+    auto result = p::search_taper_table(false, true, 1000.0, by_speed); // far beyond anything the table could reach
+    EXPECT_FALSE(result.has_value());
+}
+
+// build_taper_table pushes a sentinel row at the exact starting boundary
+// speed before the real simulated steps -- lower_bound finds that sentinel
+// row itself for a query landing exactly on it, which is table.begin(), so
+// this returns nullopt too rather than the (all-zero) sentinel values.
+TEST(SearchTaperTableEdgeCase, ReturnsNulloptExactlyAtTableStart) {
+    auto by_speed = [](const TaperedDeploymentResult& e){ return e.speed_kmh; };
+    auto result = p::search_taper_table(false, true, 290.0, by_speed);
+    EXPECT_FALSE(result.has_value());
+}
+
+
+
+// =========================================================================
+// time_to_reach_speed_over_distance()
+// =========================================================================
+
+
+class TestTimeToReachSpeedOverDistance : public ::testing::TestWithParam<ZeroDistanceCheck>{};
+
+TEST_P(TestTimeToReachSpeedOverDistance, ConsistentOutputWhenNoChangeInVelocity){
+    ZeroDistanceCheck c = GetParam();
+    double result = p::time_to_reach_speed_over_distance(180, 180, 100, c.mom, c.sm_on);
+
+    EXPECT_DOUBLE_EQ(result, 2);
+}
+
+TEST_P(TestTimeToReachSpeedOverDistance, CheckEdgeCases){
+    ZeroDistanceCheck c = GetParam();
+
+    EXPECT_DOUBLE_EQ(p::time_to_reach_speed_over_distance(0, 180, 100, c.mom, c.sm_on), -1);
+    EXPECT_DOUBLE_EQ(p::time_to_reach_speed_over_distance(-1, 180, 100, c.mom, c.sm_on), -1);
+    EXPECT_DOUBLE_EQ(p::time_to_reach_speed_over_distance(180, 0, 100, c.mom, c.sm_on), -1);
+    EXPECT_DOUBLE_EQ(p::time_to_reach_speed_over_distance(180, -1, 100, c.mom, c.sm_on), -1);
+    EXPECT_DOUBLE_EQ(p::time_to_reach_speed_over_distance(180, 180, 0, c.mom, c.sm_on), -1);
+    EXPECT_DOUBLE_EQ(p::time_to_reach_speed_over_distance(180, 180, -1, c.mom, c.sm_on), -1);
+}
+
+INSTANTIATE_TEST_SUITE_P(AllModesCombination, TestTimeToReachSpeedOverDistance, testing::Values(
+    ZeroDistanceCheck{true, true},
+    ZeroDistanceCheck{true, false},
+    ZeroDistanceCheck{false, true},
+    ZeroDistanceCheck{false, false}
+));
+
+// Decelerating branch reuses required_power's exact formula internally, so
+// checking against required_power + time_to_reach_velocity directly is a
+// more reliable reference than re-deriving the formula by hand -- as long
+// as both are called with the same sm_on, since time_to_reach_velocity now
+// uses drag_coeff(sm_on) internally instead of the old fixed DRAG_K.
+TEST(TimeToReachSpeedOverDistanceProperties, DeceleratingMatchesRequiredPower) {
+    double vi = 200.0, vf = 180.0, distance = 300.0;
+    bool mom = false, sm_on = false;
+
+    double energy_diff = p::kinetic_energy(vf) - p::kinetic_energy(vi);
+    double r_W = p::required_power(vi, energy_diff, distance, mom, sm_on);
+    ASSERT_GT(r_W, 0.0); // otherwise this scenario needs braking, not coasting -- pick different vi/vf/distance if this fails
+
+    double expected_time = p::time_to_reach_velocity(vf, vi, r_W / 1000.0, sm_on);
+    double actual_time = p::time_to_reach_speed_over_distance(vi, vf, distance, mom, sm_on);
+
+    EXPECT_NEAR(actual_time, expected_time, 1e-3);
+}
+
+// Accelerating branch, using two distances that both comfortably reach vf
+// well before running out -- isolates just the "cruise the leftover
+// distance" part of the formula via a *difference* between the two results,
+// without needing an independent reference for the harder "how long does
+// the tapering-acceleration phase itself take" part: since both distances
+// share the same acceleration phase (same vi, vf, mom, sm_on), the only
+// difference between the two results should be (distance2-distance1)/vf_ms.
+// NOTE: this currently fails -- the trailing line in that branch
+// (`total_time += final_speed_kmh / (distance_m - total_deployed_distance);`)
+// has the fraction backwards (should be leftover_distance / speed, matching
+// the cruise branch's own formula) and never converts km/h to m/s either.
+TEST(TimeToReachSpeedOverDistanceProperties, AcceleratingCruiseTimeScalesWithLeftoverDistance) {
+    double vi = 100.0, vf = 150.0;
+    double distance1 = 1000.0, distance2 = 1500.0;
+    bool mom = false, sm_on = false;
+
+    double time1 = p::time_to_reach_speed_over_distance(vi, vf, distance1, mom, sm_on);
+    double time2 = p::time_to_reach_speed_over_distance(vi, vf, distance2, mom, sm_on);
+
+    double expected_extra_time = (distance2 - distance1) / (vf / 3.6);
+    EXPECT_NEAR(time2 - time1, expected_extra_time, 1e-2);
+}
+
+// Accelerating branch, distance far too short to reach vf at all -- even a
+// single DELTA_T step covers a fraction of a meter at these speeds, so 1m
+// is nowhere near enough to gain 50 km/h. Should hit the explicit
+// "speed not reachable" guard and return -1, not fall through to compute a
+// nonsense cruise time off a near-zero or negative leftover distance.
+TEST(TimeToReachSpeedOverDistanceEdgeCase, ReturnsNegative1WhenDistanceTooShortToReachTarget) {
+    double result = p::time_to_reach_speed_over_distance(100.0, 150.0, 1.0, false, false);
+    EXPECT_DOUBLE_EQ(result, -1.0);
 }

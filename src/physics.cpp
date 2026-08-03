@@ -16,12 +16,16 @@ namespace physics {
     } 
 
     double reverse_ke(double initial_speed_kmh, double energy_J){
-        if(energy_J < 0 || initial_speed_kmh < 0){ // Input validity check
+        if(initial_speed_kmh < 0){ // Input validity check
             return -1;
         }
 
         double speed_ms = initial_speed_kmh / 3.6;
-        return std::sqrt(speed_ms * speed_ms + 2 * energy_J / MASS_KG) * 3.6;
+        double init_energy = 0.5 * speed_ms*speed_ms*MASS_KG;
+
+        if(init_energy + energy_J < 0) return -1;
+
+        return std::sqrt(2 * (init_energy + energy_J) / MASS_KG) * 3.6;
     }
 
     double work_done_with_drag(double power_kW, double initial_speed_kmh, double distance_m, bool sm_on){
@@ -38,7 +42,7 @@ namespace physics {
     }
 
     double required_power(double initial_speed_kmh, double energy_target_J, double distance_m, bool mom, bool sm_on){
-        if(energy_target_J < 0 || initial_speed_kmh < 0 || distance_m < 0) {
+        if(initial_speed_kmh < 0 || distance_m < 0) {
             return -1;
         }
 
@@ -48,22 +52,11 @@ namespace physics {
                         * drag_coeff(sm_on) / (1.0 - decay);
 
         // This means that the power required isn't achievable 
-        if(r > taper_curve(initial_speed_kmh, mom)){
+        if(r / 1000 > taper_curve(initial_speed_kmh, mom) * ICE){
             return -1;
         }
 
         return r;
-    }
-
-    double coasting_energy_loss(double initial_speed_kmh, double distance_m, bool sm_on){
-        if(initial_speed_kmh < 0 || distance_m < 0) {
-            return -1;
-        }
-
-        double vi = initial_speed_kmh / 3.6;
-        double energy = (MASS_KG * vi * vi / 2.0) * (1.0 - std::exp(-2.0 * drag_coeff(sm_on) * distance_m / MASS_KG));
-
-        return energy;
     }
 
     double distance_to_recharge(double initial_speed_kmh, double energy_target_J, double power_kW, bool sm_on){
@@ -81,42 +74,73 @@ namespace physics {
         return x;
     }
 
-    //TO DO: INCOMPLETE
-    double time_to_travel_distance(double target_speed_kmh, double initial_speed_kmh, double power_kW, double distance, bool mom, bool sm_on){
-        double vi = initial_speed_kmh / 3.6;
-        double v = target_speed_kmh / 3.6;
-        double P = power_kW * 1000.0;
-        double total_distance = 0.0;
-        double total_time = 0.0;
-        double current_kmh = initial_speed_kmh; 
-
-        while(total_distance < distance){
-            double current_power = taper_curve(current_kmh, mom);
-            double ke_gained = work_done_with_drag(power_kW + ICE, current_kmh, current_kmh * DELTA_T / 3.6, sm_on);
-            total_distance += current_kmh * DELTA_T / 3.6;
-            current_kmh = reverse_ke(current_kmh, ke_gained);
-            total_time += DELTA_T;
+    // TO TEST
+    double time_to_reach_speed_over_distance(double initial_speed_kmh, double final_speed_kmh, double distance_m, bool mom, bool sm_on){
+        if(initial_speed_kmh <= 0 || final_speed_kmh <= 0 || distance_m <= 0){
+            return -1;
         }
 
-        return total_time;
+        // Superclip
+        if(initial_speed_kmh > final_speed_kmh){
+            double energy_diff = kinetic_energy(final_speed_kmh) - kinetic_energy(initial_speed_kmh);
+            double vi = initial_speed_kmh / 3.6;
+            double decay = std::exp(-3.0 * drag_coeff(sm_on) * distance_m / MASS_KG);
+            double r = (std::pow(vi * vi + 2.0 * energy_diff / MASS_KG, 1.5) - std::pow(vi, 3.0) * decay)
+                            * drag_coeff(sm_on) / (1.0 - decay);
+
+            // r < 0 indicates that it needs breaking
+            if(r < 0) return -1;
+
+            return time_to_reach_velocity(final_speed_kmh, initial_speed_kmh, r / 1000, sm_on);
+        }
+        else if(initial_speed_kmh == final_speed_kmh){
+            return distance_m / (initial_speed_kmh / 3.6);
+        }
+        else{
+            double current_kmh = initial_speed_kmh; 
+            double total_deployed_distance = 0.0;
+            double total_energy_deployed = 0.0;
+            double total_time = 0.0;
+            
+            // Numerical method to approximate net KE gain
+            while(total_deployed_distance < distance_m && current_kmh < final_speed_kmh){
+                double current_power = taper_curve(current_kmh, mom);
+                double ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * DELTA_T / 3.6, sm_on);
+                total_deployed_distance += current_kmh * DELTA_T / 3.6;
+                current_kmh = reverse_ke(current_kmh, ke_gained);
+                total_energy_deployed += current_power * DELTA_T * 1000;
+                total_time += DELTA_T;
+            }
+            
+            // Speed not reachable
+            if(total_deployed_distance >= distance_m && current_kmh < final_speed_kmh) return -1;
+
+            total_time += (distance_m - total_deployed_distance) / (final_speed_kmh / 3.6);
+            return total_time;
+        }
+        
+        
+        return {};  
     }
 
-    double time_to_reach_velocity(double target_speed_kmh, double initial_speed_kmh, double power_kW){
+    double time_to_reach_velocity(double target_speed_kmh, double initial_speed_kmh, double power_kW, bool sm_on){
+        if(target_speed_kmh <= 0 || initial_speed_kmh <= 0 || power_kW < 0) return -1;
+        
         double vi = initial_speed_kmh / 3.6;
         double v = target_speed_kmh / 3.6;
         double P = power_kW * 1000.0;
 
-        double a = std::pow(P / DRAG_K, 1.0 / 3.0); // terminal velocity
+        double a = std::pow(P / drag_coeff(sm_on), 1.0 / 3.0); // terminal velocity
 
         // Antiderivative of m*vel / (P - k*vel^3), via partial fractions.
-        auto antiderivative = [a](double vel){
+        auto antiderivative = [a](double vel, bool sm_on){
             double term1 = -1.0 / (3.0 * a) * std::log(std::fabs(a - vel));
             double term2 = 1.0 / (6.0 * a) * std::log(vel * vel + a * vel + a * a);
             double term3 = -1.0 / (a * std::sqrt(3.0)) * std::atan((2.0 * vel + a) / (a * std::sqrt(3.0)));
-            return (1.0 / DRAG_K) * (term1 + term2 + term3);
+            return (1.0 / drag_coeff(sm_on)) * (term1 + term2 + term3);
         };
 
-        return MASS_KG * (antiderivative(v) - antiderivative(vi));
+        return MASS_KG * (antiderivative(v, sm_on) - antiderivative(vi, sm_on));
     }
     
     double taper_curve(double speed_kmh, double mom){
@@ -187,7 +211,7 @@ namespace physics {
         if(mom)current_kmh = 337; 
         else   current_kmh = 290; 
         
-        // This is to basically give table.begin() a meaning. If the value tried to search within
+        // This line basically gives table.begin() a meaning. If the value tried to search within
         // the table is less than the minimum value, searching will give the iterator pointing to 
         // table.begin(). This line makes sure that it is genuinely not in the table, rather than just
         // the needed value is small so it wants the first field of the table.

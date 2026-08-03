@@ -88,13 +88,13 @@ Act as a senior engineer doing code review, not as an implementer:
 - [x] Segment data model (Segment base + Straight/SlowCorner/FastCorner)
 - [x] Battery state model
 - [x] Car / physics model — ICE/MGU-K/mass constants, deployment, taper curve, kinetic-energy↔speed conversion, harvesting methods (braking/coasting/superclip/partial-throttle)
-- [x] Drag-aware physics formulas (physics.h/.cpp) — kinetic energy, work done under power with drag, required power, coasting energy loss, distance-to-recharge, time-to-reach-velocity. Validated through GoogleTest unit tests.
+- [x] Drag-aware physics formulas (physics.h/.cpp) — kinetic energy, work done under power with drag, required power, distance-to-recharge, time-to-reach-velocity. Validated through GoogleTest unit tests.
 - [x] DP optimizer core, consider how to optimize recharge, how much hp goes to superclipping etc..
 - [x] Generating a table of (battery, delta) pairs for each segment of the track (`segment_options()`), so that the DP optimizer can use this information to decide the best course of action. For each case of Straight, FastCorner and SlowCorner, the functions have been implemented.
 - [x] Qualifying mode — manually tested across several input combinations; harvest-cap enforcement (via the `harvest_charge` DP dimension) confirmed correctly respected.
 - [ ] Race mode (multi-lap) — partial: the DP supports race-mode parameters (the race harvest-cap variant, and an arbitrary starting/ending battery for a single lap), but doesn't yet simulate multiple laps with battery/harvest state carrying over lap-to-lap as the original spec above describes (`main_optimizing_loop` only ever runs one lap; nothing calls `Battery::reset_harvest()` between laps because there's no lap loop yet).
 - [x] MVP completed
-- [x] GoogleTest set up; unit tests written for `Battery`, `Car`, and `Physics` (simple/linear formulas + documented edge-case behavior for all of them). The transcendental drag-ODE formulas (`work_done_with_drag`, `required_power`, `coasting_energy_loss`, `distance_to_recharge`, `time_to_reach_velocity`) deliberately have only boundary/round-trip property tests, not exact-value ones — they're about to be rewritten with numerical methods for tapering, so locking in hand-typed constants for the current closed-form versions isn't worth it.
+- [x] GoogleTest set up; unit tests written for `Battery`, `Car`, and `Physics` (simple/linear formulas + documented edge-case behavior for all of them). The transcendental drag-ODE formulas (`work_done_with_drag`, `required_power`, `distance_to_recharge`, `time_to_reach_velocity`) deliberately have only boundary/round-trip property tests, not exact-value ones — they're about to be rewritten with numerical methods for tapering, so locking in hand-typed constants for the current closed-form versions isn't worth it. (`coasting_energy_loss` was later removed entirely — its functionality was exactly `work_done_with_drag(0, ...)` with a sign flip, so it added no coverage of its own.)
 - [x] Unit test `Track` (segment data + `next()`/`prev()` wraparound) and `Optimizer::index_helper` (the flattened-index calculation that's caused the most repeat bugs this session — will need `FRIEND_TEST` since it's private). No DP integration tests yet — blocked on `Optimizer` hardcoding its own `Track` member, so there's currently no way to inject a small fake track to hand-verify DP output against.
 - [x] clang-tidy + sanitizer builds (from the original CI plan below) — cheap to wire up now that a test suite exists to run under them; likely to catch more of the same bug class as the `Battery` constructor's uninitialized `harvest_limit` read found earlier this session.
 - [ ] Implement and bring in tapering function, alongside reworking the closed-form drag formulas in `physics.cpp` to numerical methods (a speed-dependent taper curve doesn't have a clean closed-form integral).
@@ -120,13 +120,13 @@ Track representation:
 - [ ] Be aware that Hamilton Straight starts 50m before the S/F line of the next lap. There is 50m more for the car to travel after finishing the last corner (T18) 
 
 Physics model:
-- [ ] Make every function Taper aware
-- [ ] Seperate the Drag Coefficient calculation from the drag formula, because it can vary in the future independent of speed
-- [ ] Straight Mode aware, as that reduces the Drag Coefficient
-- [ ] MOM aware, can reach a higher top-speed before Taper kicks in
-- [ ] Numerical method, because integration won't work anymore
-- [ ] Lookup table for Tapering, improve efficiency
-- [ ] Fix the problem that the time function doesn't give a reasonable output when the difference in speed is small
+- [x] Make every function Taper aware -- with one deliberate exception: `work_done_with_drag`, `distance_to_recharge`, and `time_to_reach_velocity` stay taper-agnostic on purpose (plain constant power in, no `taper_curve` knowledge). Tapering is applied by whichever function calls them repeatedly with recomputed power instead (`energy_deployed_with_taper` `time_to_reach_speed_over_distance`, `build_taper_table`).
+- [x] Seperate the Drag Coefficient calculation from the drag formula, because it can vary in the future independent of speed
+- [x] Straight Mode aware, as that reduces the Drag Coefficient -- `sm_on` now threaded through every drag-involving function.
+- [x] MOM aware, can reach a higher top-speed before Taper kicks in -- `mom` threaded through `time_to_reach_speed_over_distance`, `energy_deployed_with_taper`, and the taper table functions.
+- [x] Numerical method, because integration won't work anymore -- `energy_deployed_with_taper`, `build_taper_table`, and `time_to_reach_speed_over_distance`'s accelerating branch all step forward numerically now.
+- [x] Lookup table for Tapering, improve efficiency -- `build_taper_table` / `taper_table` / `search_taper_table`.
+- [x] Fix the problem that the time function doesn't give a reasonable output when the difference in speed is small -- fixed for the case that actually mattered (`vi == vf` exactly), via `time_to_reach_speed_over_distance`'s dedicated cruise branch, which never touches the degenerate antiderivative for that case. Near-equal-but-not-exactly-equal speeds were also manually stress-tested (`temp_test.cpp`, sweeping the gap down to ~0.001km/h) at the specific power where this is riskiest -- a tiny gap implies a "hold speed constant" power, whose terminal velocity sits right on the antiderivative's `log|a-vel|` singularity -- and the result converged smoothly with no instability. So the only genuinely broken case is exact equality, which is already handled separately.
 
 Optimizer:
 - [ ] Integrate the new features of both Physics and Track into the DP algorithm correctly

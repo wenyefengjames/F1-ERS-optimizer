@@ -24,7 +24,6 @@ namespace physics {
     inline constexpr double FRONTAL_AREA = 1.45;            // A, m^2
     inline constexpr double CM_DRAG_COEFF = 1.0;            // Cd, Corner mode, no unit
     inline constexpr double SM_DRAG_COEFF = 0.7;            // Cd, Stragiht mode, no unit
-    inline constexpr double DRAG_K = 0.5 * AIR_DENSITY * DRAG_AREA_COEFF;
     inline constexpr double BATTERY_CAPACITY = 4.0;         // MJ
     inline constexpr double MGU_K = 350;                    // kW
     inline constexpr double ICE = 400;                      // kW
@@ -52,6 +51,7 @@ namespace physics {
     // Inputs: power_kW - engine power, in kW
     //         initial_speed_kmh - initial speed, in km/h
     //         distance_m - distance travelled at this power, in meters
+    //         sm_on - indicates if the car has SM
     // Output: kinetic energy gained, in Joules
     double work_done_with_drag(double power_kW, double initial_speed_kmh, double distance_m, bool sm_on);
 
@@ -60,30 +60,40 @@ namespace physics {
     // Inputs: initial_speed_kmh - initial speed, in km/h
     //         energy_target_J - kinetic energy that needs to be gained, in Joules
     //         distance_m - distance available to gain it, in meters
+    //         mom - indicates if the car has MOM
+    //         sm_on - indicates if the car has SM
     // Output: required engine power, in Watts
     double required_power(double initial_speed_kmh, double energy_target_J, double distance_m, bool mom, bool sm_on);
-
-    // Kinetic energy lost to drag while coasting (no throttle) over distance_m.
-    // Inputs: initial_speed_kmh - initial speed, in km/h
-    //         distance_m - distance travelled while coasting, in meters
-    // Output: kinetic energy lost to drag, in Joules
-    double coasting_energy_loss(double initial_speed_kmh, double distance_m, bool sm_on);
 
     // Distance needed, at constant engine power_kW, to gain energy_target_J
     // of KE starting from initial_speed_kmh.
     // Inputs: initial_speed_kmh - initial speed, in km/h
     //         energy_target_J - kinetic energy that needs to be gained, in Joules
     //         power_kW - constant engine power used to gain it, in kW
+    //         sm_on - indicates if the car has SM
     // Output: distance required, in meters
     double distance_to_recharge(double initial_speed_kmh, double energy_target_J, double power_kW, bool sm_on);
 
     // Time to accelerate from initial_speed_kmh to target_speed_kmh under
     // constant engine power_kW, net of drag.
+    // IMPORTANT: Use time_to_reach_speed_over_distance() function over this one. 
+    // That one includes this function with better use cases
     // Inputs: target_speed_kmh - speed to reach, in km/h
     //         initial_speed_kmh - starting speed, in km/h
     //         power_kW - constant engine power, in kW
+    //         sm_on- whether the car has SM
     // Output: time to reach target_speed_kmh, in seconds
-    double time_to_reach_velocity(double target_speed_kmh, double initial_speed_kmh, double power_kW);
+    double time_to_reach_velocity(double target_speed_kmh, double initial_speed_kmh, double power_kW, bool sm_on);
+
+    // Time taken to accelerate from initial_speed_kmh to final_speed_kmh
+    // While covering distance_m
+    // Inputs: initial_speed_kmh - speed to reach, in km/h
+    //         final_speed_kmh - starting speed, in km/h
+    //         distance_m - distance to cover, in meters
+    //         mom - whether the car has MOM
+    //         sm_on- whether the car has SM
+    // Output: time to reach target_speed_kmh, in seconds
+    double time_to_reach_speed_over_distance(double initial_speed_kmh, double final_speed_kmh, double distance_m, bool mom, bool sm_on);
 
     // The curve of how the deployment rate decreases
     // Assuming the power output decreases linearly with respect to speed
@@ -110,6 +120,7 @@ namespace physics {
     // Inputs: initial_kmh - initial speed, in km/h
     //         distance - how long to deploy energy for
     //         mom - indicates if the car has MOM
+    //         sm_on - indicates if the car has SM
     // Output: energy gained with deployment, in Joules
     TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, bool mom, bool sm_on);
 
