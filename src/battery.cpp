@@ -2,8 +2,8 @@
 #include <algorithm>
 #include <iostream>
 
-Battery::Battery(double battery_charge, double harvest_charge, bool race_mode){
-    set_race_mode(race_mode);
+Battery::Battery(double battery_charge, double harvest_charge, bool race_mode, bool mom){
+    set_race_mode_and_mom(race_mode, mom);
     set_battery(battery_charge);
     set_harvest(harvest_charge);
 }
@@ -49,6 +49,24 @@ void Battery::reset_harvest(){
     this->harvest_charge = 0.0;
 }
 
+// Check if there is enough battery to allow the requested deploy
+// Also check if there is enough space for reaching harvesting limit or battery capacity
+bool Battery::check_allow_charge(double deploy, double harvest){
+
+    bool deploy_feasible = deploy <= battery_charge;
+
+    bool battery_capacity_check = battery_capacity >= battery_charge - deploy + harvest;
+                        
+    bool harvest_limit_check = harvest + harvest_charge <= harvest_limit;
+
+    return deploy_feasible && harvest_limit_check && battery_capacity_check;
+}
+
+// Returns how much charge can be recharged
+double Battery::avaliable_charge(){
+    return std::min(battery_capacity - battery_charge, harvest_limit-harvest_charge);
+}
+
 // Deployment -------------------------------------------------------------------------
 
 // Deployment the amount of charge given if there is enough charge within the battery
@@ -72,6 +90,11 @@ bool Battery::get_race_mode(){
 double Battery::get_harvest_limit(){
     return this->harvest_limit;
 }
+
+bool Battery::get_mom(){
+    return this->mom;
+}
+
 // Setters -------------------------------------------------
 void Battery::set_battery(double energy){
     battery_charge = std::min(energy, battery_capacity);
@@ -83,34 +106,20 @@ void Battery::set_harvest(double energy){
 
 // Change race mode to new race mode
 // Change maximum harvest energy in a lap based on the new race mode
-void Battery::set_race_mode(bool new_mode){
+void Battery::set_race_mode_and_mom(bool new_mode, bool mom){
 
     // 'true' represents race mode, 'false' represents qualifying mode
-    if(new_mode == true){   
-        this->harvest_limit = this->race_harvest_limit;
+    if(new_mode && mom){   
+        this->harvest_limit = this->race_harvest_limit + 0.5;
     } 
+    else if(new_mode && !mom){
+        this->harvest_limit = this->race_harvest_limit;
+    }
     else{   
         this->harvest_limit = this->qualifying_harvest_limit;
     }
 
     this->race_mode = new_mode;
-}
-
-// Check if there is enough battery to allow the requested deploy
-// Also check if there is enough space for reaching harvesting limit or battery capacity
-bool Battery::check_allow_charge(double deploy, double harvest){
-
-    bool deploy_feasible = deploy <= battery_charge;
-
-    bool battery_capacity_check = battery_capacity >= battery_charge - deploy + harvest;
-                        
-    bool harvest_limit_check = harvest + harvest_charge <= harvest_limit;
-
-    return deploy_feasible && harvest_limit_check && battery_capacity_check;
-}
-
-// Returns how much charge can be recharged
-double Battery::avaliable_charge(){
-    return std::min(battery_capacity - battery_charge, harvest_limit-harvest_charge);
+    this->mom = mom;
 }
 

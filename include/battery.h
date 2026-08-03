@@ -10,9 +10,10 @@ class Battery {
         double harvest_charge = 0.0;      // Total harvested energy in a lap
         double harvest_limit = 0.0;       // Maximum energy allowed to harvest in a lap, depending on race mode
         bool race_mode;             // True being race mode, False being qualifying mode
+        bool mom;                   // True if the car has MOM
 
     public:
-        Battery(double battery_charge, double total_harvest, bool race_mode);
+        Battery(double battery_charge, double total_harvest, bool race_mode, bool mom);
 
         // Harvest
         void harvest(double new_charge);
@@ -34,11 +35,11 @@ class Battery {
         double get_harvest_charge();
         double get_harvest_limit();
         bool get_race_mode();
+        bool get_mom();
 
         // Setters --------------------------------------
-        void set_race_mode(bool new_race_mode);
+        void set_race_mode_and_mom(bool new_race_mode, bool mom);
         void set_battery(double battery_charge);
         void set_harvest(double set_harvest);
-
-
+        void set_mom(bool mom);
 };

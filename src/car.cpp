@@ -6,7 +6,7 @@
 namespace p = physics;
 
 Car::Car(bool race_mode, bool mom) 
-        : race_mode(race_mode), mom(mom), battery(4.0, 0.0, race_mode){}
+        : race_mode(race_mode), mom(mom), battery(4.0, 0.0, race_mode, mom){}
 
 // Deployment. Input: the amount of time that the MGU-K deploys
 // Output: the change in car speed and its delta compared to the theoretical time.
@@ -45,9 +45,10 @@ bool Car::get_mom(){
 
 void Car::set_race_mode(bool race_mode){
     this->race_mode = race_mode;
-    battery.set_race_mode(race_mode);
+    battery.set_race_mode_and_mom(race_mode, this->mom);
 }
 
 void Car::set_mom(bool mom){
     this->mom = mom;
+    battery.set_race_mode_and_mom(this->race_mode, mom);
 }

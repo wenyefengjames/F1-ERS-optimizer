@@ -2,7 +2,7 @@
 #include "../include/battery.h"
 
 TEST(BatteryTest, HarvestNeverExceedsCapacity) {
-    Battery b(3.9, 0.0, false);
+    Battery b(3.9, 0.0, false, false);
     b.harvest(1.0);
     EXPECT_LE(b.get_battery_charge(), 4.0);
 }
@@ -13,7 +13,7 @@ TEST(BatteryTest, HarvestNeverExceedsCapacity) {
 // never leak state into each other.
 class BatteryTestQualify : public ::testing::Test {
     protected:
-        Battery battery = Battery(2.0, 0.0, false);
+        Battery battery = Battery(2.0, 0.0, false, false);
 };
 
 // ---- Normal case ----
@@ -26,7 +26,7 @@ TEST_F(BatteryTestQualify, HarvestBelowBothCapsAppliesInFull) {
 
 // Check if the Constructor of Battery class assigns values correctly
 TEST_F(BatteryTestQualify, TestCorrectAssignmentOfConstructor) {
-    Battery low_charge_battery(0.5, 5.5, false);
+    Battery low_charge_battery(0.5, 5.5, false, false);
     EXPECT_DOUBLE_EQ(low_charge_battery.get_harvest_charge(), 5.5);
     EXPECT_DOUBLE_EQ(low_charge_battery.get_battery_charge(), 0.5);
 }
@@ -49,7 +49,7 @@ TEST_F(BatteryTestQualify, HarvestCappedByBatteryCapacity) {
 // the harvest_limit is the ONLY thing that can be binding here — isolates
 // the two caps from each other rather than testing them tangled together.
 TEST_F(BatteryTestQualify, HarvestCappedByHarvestLimit) {
-    Battery low_charge_battery(0.5, 5.5, false); // 0.5/4.0 charge, 5.5/6.0 harvested already
+    Battery low_charge_battery(0.5, 5.5, false, false); // 0.5/4.0 charge, 5.5/6.0 harvested already
     low_charge_battery.harvest(1.0);              // would overshoot the 6.0 harvest_limit
     EXPECT_DOUBLE_EQ(low_charge_battery.get_harvest_charge(), 6.0);
     EXPECT_DOUBLE_EQ(low_charge_battery.get_battery_charge(), 1.0); // only the capped 0.5 got added
@@ -63,13 +63,15 @@ TEST_F(BatteryTestQualify, DeployNeverGoesNegative) {
 
 // ---- Simple boolean-returning queries: no fixture needed, standalone TEST() is fine ----
 TEST(BatteryQueryTest, IsBatteryFullDetectsExactCapacity) {
-    Battery full(4.0, 0.0, false);
+    Battery full(4.0, 0.0, false, false);
     EXPECT_TRUE(full.is_battery_full());
 }
 
+// mom=false here throughout -- deliberately isolates the plain race harvest
+// cap (8.5) from the MOM bonus, which gets its own dedicated tests below.
 class BatteryTestRace : public ::testing::Test {
     protected:
-        Battery battery = Battery(2.0, 0.0, true); 
+        Battery battery = Battery(2.0, 0.0, true, false);
 };
 
 // Check if the harvest limit is correctly set to 8.5
@@ -108,7 +110,7 @@ class CheckAllowChargeTest : public ::testing::TestWithParam<ChargeCase> {};
 
 TEST_P(CheckAllowChargeTest, MatchesExpected) {
     ChargeCase c = GetParam();
-    Battery b(c.battery_charge, c.harvest_charge, false);
+    Battery b(c.battery_charge, c.harvest_charge, false, false);
     EXPECT_EQ(b.check_allow_charge(c.deploy, c.harvest), c.expected);
 }
 
@@ -117,3 +119,40 @@ INSTANTIATE_TEST_SUITE_P(VariousCases, CheckAllowChargeTest, ::testing::Values(
     ChargeCase{0.0, 2.0, 2.0, 5.0, false},  // would exceed the 6.0 harvest limit
     ChargeCase{5.0, 0.0, 2.0, 0.0, false}   // can't deploy more than you have
 ));
+
+// =========================================================================
+// MOM harvest bonus: race+MOM gets +0.5MJ on the harvest limit; qualifying
+// never does, regardless of MOM.
+// =========================================================================
+TEST(BatteryMomTest, RaceWithMomGetsThe0Point5Bonus) {
+    Battery b(2.0, 0.0, true, true);
+    EXPECT_DOUBLE_EQ(b.get_harvest_limit(), 9.0);
+}
+
+// The bonus is specifically a race-mode thing -- MOM alone shouldn't raise
+// qualifying's harvest limit at all.
+TEST(BatteryMomTest, MomBonusDoesNotApplyInQualifying) {
+    Battery b(2.0, 0.0, false, true);
+    EXPECT_DOUBLE_EQ(b.get_harvest_limit(), 6.0);
+}
+
+// Regression test for a real bug from this session: the bonus used to be
+// applied via `harvest_limit += 0.5`, which stacked on every repeated call
+// instead of being idempotent. Calling the same (race_mode, mom) combination
+// twice should land on 9.0 both times, not climb to 9.5.
+TEST(BatteryMomTest, RepeatedSetRaceModeAndMomDoesNotStackTheBonus) {
+    Battery b(2.0, 0.0, true, true);
+    b.set_race_mode_and_mom(true, true);
+    b.set_race_mode_and_mom(true, true);
+    EXPECT_DOUBLE_EQ(b.get_harvest_limit(), 9.0);
+}
+
+// Regression test for the other bug from this session: the bonus used to
+// not be applied yet by the time the constructor's set_harvest() call
+// clamped the initial harvest_charge argument, silently losing up to 0.5MJ
+// of a legitimately-requested starting value. 8.7 is only valid *with* the
+// bonus -- the base race cap alone is 8.5.
+TEST(BatteryMomTest, ConstructorAppliesBonusBeforeClampingInitialHarvest) {
+    Battery b(0.5, 8.7, true, true);
+    EXPECT_DOUBLE_EQ(b.get_harvest_charge(), 8.7);
+}

@@ -31,7 +31,7 @@ int Optimizer::index_helper(int i, double b, double e, double h){
 //        ending_battery, how much leftover battery charge you need, in MJ
 //        harvest, the starting harvest that you want to give the car, should be 0 by default
 double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, double ending_battery, double harvest){
-    Battery battery = Battery(initial_battery, harvest, race_mode);
+    Battery battery = Battery(initial_battery, harvest, race_mode, mom);
     double best_laptime = dp_algorithm(seg_index, battery, ending_battery);
     std::vector<Option> deployment_choice = path_reconstruction(seg_index, initial_battery, ending_battery, harvest);
 
@@ -262,26 +262,15 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
         target_speed = corner->get_exit_speed();
     }
 
-    const double ke_gain = p::kinetic_energy(target_speed) - p::kinetic_energy(current_speed);
-    const double power_output = p::required_power(current_speed, ke_gain, length, mom, false) / 1000;
+    auto results = p::time_to_reach_speed_over_distance(current_speed, target_speed, length, mom, false);
 
-    // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
-    // std::cout << "ke_gain: " << ke_gain << "\t";
-    // std::cout << "power_output: " << power_output << "\t";
-    // std::cout << "length: " << length << "\t";
-    // std::cout << "init battery: " << initial_battery << "\n";
-
-    // Indicates that the car needs braking, which should never happen
-    if (power_output < 0){
+    if(results == std::nullopt) {
         option_table.clear();
         return option_table;
     }
 
-    const double time = p::time_to_reach_velocity(target_speed, current_speed, power_output);
-
-    const double recharge_rating = std::clamp(p::ICE - power_output, -p::MGU_K, p::MGU_K);
-
-    double harvest_energy_MJ = recharge_rating * 1000 * time / 1000000;
+    const double time_harvesting = results.value().time_s;
+    double harvest_energy_MJ = results.value().energy_J / 1000000;
 
     // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
     // std::cout << "initial_battery < -harvest_energy_MJ: " << (initial_battery < -harvest_energy_MJ) << "\t";
@@ -300,14 +289,14 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
 
             // Generate a list of allowed energy to harvest, the time would be the same
             for(int step = 0; step < energy_buckets; step++){
-                Option temp = {0, step * bucket_size, time};
+                Option temp = {0, step * bucket_size, time_harvesting};
                 option_table.push_back(temp);
             }
 
         }
         else{   // Deploying
             harvest_energy_MJ = bucket_size * std::ceil(-harvest_energy_MJ * (1/bucket_size));
-            Option temp = {harvest_energy_MJ, 0, time};
+            Option temp = {harvest_energy_MJ, 0, time_harvesting};
             option_table.push_back(temp);
         }
     }
@@ -429,7 +418,6 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, double exit_sp
         const double ke_gained = p::kinetic_energy(results.speed_kmh) - ke_init_speed;
         const double speed = results.speed_kmh;
         const double time_deploying = results.time_s;
-
         double energy_deployed = results.energy_J;
 
         // TESTING
@@ -440,35 +428,14 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, double exit_sp
 
         // If the amount of energy deployed is more than what the battery have, break out of this loop
         // Because the deployment distance will only keep increasing, so the battery wont have enough for distance longer than current
-        if(energy_deployed >= initial_battery * 1000000){
-            break;
-        }
+        if(energy_deployed >= initial_battery * 1000000) break;
 
-        const double ke_diff = p::kinetic_energy(speed) - ke_target_speed;
-        const double engine_power = p::required_power(speed, -ke_diff, harvest_dis, mom, sm);   // in Watts, not kW
+        auto result_for_time_energy = p::time_to_reach_speed_over_distance(speed, target_speed, harvest_dis, mom, sm);
+        if(result_for_time_energy == std::nullopt) break;
 
-        // TESTING
-        // std::cout << "ke_diff: " << ke_diff << "\t";
-        // std::cout << "engine_power: " << engine_power << "\n";
-                    
-        // Stop the loop if it requires the engine power output to be less than 0 (meaning it requires breaking)
-        if(engine_power < 0){
-            break;
-        }
+        const double energy_harvested = result_for_time_energy.value().energy_J;
+        const double time_harvesting = result_for_time_energy.value().time_s;
 
-        // Limit the range of recharge
-        double recharge_power = p::ICE*1000 - engine_power;
-        
-        // Recharge power has to be positive
-        if (recharge_power <= 0){
-            continue;
-        }
-
-        if (recharge_power >= p::MGU_K * 1000) recharge_power = p::MGU_K * 1000;
-
-        const double time_harvesting = p::time_to_reach_velocity(target_speed, speed, engine_power / 1000);
-
-        double energy_harvested = time_harvesting * recharge_power;
         total_time = time_harvesting + time_deploying;
 
         // TESTING
