@@ -242,7 +242,7 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
     std::vector<Option> option_table;
     double current_speed = corner->get_apex_min_speed();
     double target_speed = 0.0;
-    double length = corner->get_length() * 0.5;
+    double length = corner->get_apex_to_exit_length() * 0.5;
     
     // Extract the target speed and length of the next segment, fast and slow corners are different here
     Segment* next_segment = circuit.next(seg_index);
@@ -253,10 +253,7 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
     else if(next_segment->get_type() == "FastCorner"){
         FastCorner* next_corner = static_cast<FastCorner*>(next_segment);
         target_speed = next_corner->get_apex_min_speed();
-
-        // Assumption that the apex of the next corner is at exactly half way of the corner
-        // Which is where the apex_min_speed lies
-        length += next_corner->get_length() * 0.5;
+        length += next_corner->get_entry_to_apex_length() * 0.5;
     }
     else if (next_segment->get_type() == "Straight") {
         target_speed = corner->get_exit_speed();
@@ -373,10 +370,7 @@ std::vector<Option> Optimizer::option_table_straight(int seg_index, double initi
     else if(next_segment->get_type() == "FastCorner"){
         FastCorner* corner = static_cast<FastCorner*>(next_segment);
         target_speed = corner->get_apex_min_speed();
-
-        // Assumption that the apex of the next corner is at exactly half way of the corner
-        // Which is where the apex_min_speed lies
-        length += corner->get_length() * 0.5;
+        length += corner->get_entry_to_apex_length();
     }
     // --------------------------------------------------------------------------------------------------
 
@@ -390,16 +384,16 @@ std::vector<Option> Optimizer::option_table_straight(int seg_index, double initi
 }
 
 // Loop through the optimal energy deployment method for every partition_size meter gap
-std::vector<Option> Optimizer::best_option_for_bucket(int length, double exit_speed, double target_speed,
-                                                      double initial_battery, bool sm){
+std::vector<Option> Optimizer::best_option_for_bucket(int length, int seg_index, double exit_speed, double target_speed,
+                                                      double initial_battery){
 
     double best_time = std::numeric_limits<double>::infinity();
     double total_time = std::numeric_limits<double>::infinity();
     double deploy_choice = 0.0;     // Energy deployed for the best time
     double harvest_choice = 0.0;    // Energy harvested for the best time
     const double ke_target_speed = p::kinetic_energy(target_speed); // loop invariant, so precompute
-    const double ke_init_speed = p::kinetic_energy(exit_speed); // loop invariant
-
+    const double ke_init_speed = p::kinetic_energy(exit_speed);     // loop invariant
+    Straight* seg = static_cast<Straight*>(circuit.at(seg_index));
     std::vector<Option> output;
 
     // Find the optimal time for the given energy bucket
@@ -413,7 +407,7 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, double exit_sp
         // std::cout << "deploy_dis: " << deploy_dis << "\t";
         // std::cout << "harvest_dis: " << harvest_dis << "\n";
 
-        auto results = p::energy_deployed_with_taper(exit_speed, deploy_dis, mom, sm);
+        TaperedDeploymentResult results  = p::energy_deployed_with_taper(exit_speed, deploy_dis, seg->get_sm_start(), seg->get_sm_end(), mom);
 
         const double ke_gained = p::kinetic_energy(results.speed_kmh) - ke_init_speed;
         const double speed = results.speed_kmh;
@@ -430,7 +424,7 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, double exit_sp
         // Because the deployment distance will only keep increasing, so the battery wont have enough for distance longer than current
         if(energy_deployed >= initial_battery * 1000000) break;
 
-        auto result_for_time_energy = p::time_to_reach_speed_over_distance(speed, target_speed, harvest_dis, mom, sm);
+        auto result_for_time_energy = p::time_to_reach_speed_over_distance(speed, target_speed, harvest_dis, mom, seg->get_sm());
         if(result_for_time_energy == std::nullopt) break;
 
         const double energy_harvested = result_for_time_energy.value().energy_J;

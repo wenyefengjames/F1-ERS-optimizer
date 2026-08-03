@@ -365,10 +365,11 @@ struct DeployTaperCheck {double speed_kmh; bool mom; double distance, output_kmh
 // Checking that the output speed is correct before tapering kicks in. Both
 // calls must share the same sm_on -- drag_coeff(sm_on) has to match on both
 // sides for "matches the untapered closed form" to mean anything.
+// sm_start/sm_end = -1 is the sentinel for "no SM anywhere in this run".
 TEST(EnergyDeployedWithTaperProperties, MatchesUntaperedBelowThreshold) {
     double vi = 100.0, distance = 5.0;
     bool sm_on = false;
-    auto result = p::energy_deployed_with_taper(vi, distance, false, sm_on);
+    auto result = p::energy_deployed_with_taper(vi, distance, -1, -1, false);
 
     double untapered_energy = p::work_done_with_drag(p::MGU_K + p::ICE, vi, distance, sm_on);
     double untapered_speed = p::reverse_ke(vi, untapered_energy);
@@ -381,7 +382,7 @@ TEST(EnergyDeployedWithTaperProperties, MatchesUntaperedBelowThreshold) {
 TEST(EnergyDeployedWithTaperProperties, TaperReducesFinalSpeedAboveThreshold) {
     double vi = 280.0, distance = 300.0;
     bool sm_on = false;
-    auto result = p::energy_deployed_with_taper(vi, distance, false, sm_on);
+    auto result = p::energy_deployed_with_taper(vi, distance, -1, -1, false);
 
     double untapered_energy = p::work_done_with_drag(p::MGU_K + p::ICE, vi, distance, sm_on);
     double untapered_speed = p::reverse_ke(vi, untapered_energy);
@@ -392,14 +393,28 @@ TEST(EnergyDeployedWithTaperProperties, TaperReducesFinalSpeedAboveThreshold) {
 // Checks that the distance covered is at least the requested distance
 TEST(EnergyDeployedWithTaperProperties, CoversAtLeastRequestedDistance) {
     double vi = 200.0, distance = 500.0;
-    auto result = p::energy_deployed_with_taper(vi, distance, false, false);
+    auto result = p::energy_deployed_with_taper(vi, distance, -1, -1, false);
 
     EXPECT_GE(result.distance_m, distance);
     EXPECT_LT(result.distance_m, distance + (400.0 / 3.6) * p::DELTA_T);
 }
 
+// SM active for the whole covered distance should beat no SM at all: SM's
+// lower drag coefficient means less energy lost to drag for the same power
+// input, so final speed should be strictly higher. Kept comfortably below
+// the taper threshold so drag coefficient is the only thing differing
+// between the two runs.
+TEST(EnergyDeployedWithTaperProperties, SmWindowCoveringWholeRunBeatsNoSm) {
+    double vi = 200.0, distance = 300.0;
+    auto sm_result = p::energy_deployed_with_taper(vi, distance, 0.0, distance, false);
+    auto no_sm_result = p::energy_deployed_with_taper(vi, distance, -1, -1, false);
+
+    EXPECT_GT(sm_result.speed_kmh, no_sm_result.speed_kmh);
+}
+
 // distance=0 should lead to every property unchanged, regardless of mom/sm_on --
-// parameterized over all 4 combinations since the loop body never runs either way.
+// parameterized over all 4 combinations since the loop body never runs either way
+// (so the specific sm_start/sm_end values chosen for the "SM on" case don't matter).
 struct ZeroDistanceCheck { bool mom; bool sm_on; };
 
 class CheckZeroDistanceEdgeCase : public ::testing::TestWithParam<ZeroDistanceCheck> {};
@@ -407,7 +422,9 @@ class CheckZeroDistanceEdgeCase : public ::testing::TestWithParam<ZeroDistanceCh
 TEST_P(CheckZeroDistanceEdgeCase, ReturnsUnchangedStartingState) {
     ZeroDistanceCheck c = GetParam();
     double vi = 200.0;
-    auto result = p::energy_deployed_with_taper(vi, 0.0, c.mom, c.sm_on);
+    double sm_start = c.sm_on ? 0.0 : -1.0;
+    double sm_end = c.sm_on ? 100.0 : -1.0;
+    auto result = p::energy_deployed_with_taper(vi, 0.0, sm_start, sm_end, c.mom);
 
     EXPECT_DOUBLE_EQ(result.speed_kmh, vi);
     EXPECT_DOUBLE_EQ(result.energy_J, 0.0);

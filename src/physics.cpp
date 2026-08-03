@@ -201,16 +201,26 @@ namespace physics {
         else return without_sm;
     }
 
-    TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, bool mom, bool sm_on){
+    // Overloaded function where SM is true 
+    TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, double sm_start, double sm_end, bool mom){
         double current_kmh = initial_kmh; 
         double total_deployed_distance = 0.0;
         double total_energy_deployed = 0.0;
         double total_time = 0.0;
+        double ke_gained = 0;
         
         // Numerical method to approximate net KE gain
         while(total_deployed_distance < distance){
             double current_power = taper_curve(current_kmh, mom);
-            double ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * DELTA_T / 3.6, sm_on);
+
+            // sm_start being less than 0 indicates that SM is false
+            if(sm_start >=0 && total_deployed_distance >= sm_start && total_deployed_distance <= sm_end){
+                ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * DELTA_T / 3.6, true);
+            }
+            else{
+                ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * DELTA_T / 3.6, false);
+            }
+
             total_deployed_distance += current_kmh * DELTA_T / 3.6;
             current_kmh = reverse_ke(current_kmh, ke_gained);
             total_energy_deployed += current_power * DELTA_T * 1000;
@@ -221,8 +231,14 @@ namespace physics {
                 double remaining_distance = distance - total_deployed_distance;
 
                 auto query = [](const TaperedDeploymentResult& field){return field.distance_m;};
-                auto result = search_taper_table(mom, sm_on, remaining_distance, query);
+                std::optional<TaperedDeploymentResult> result;
 
+                if(sm_start >=0 && total_deployed_distance >= sm_start && total_deployed_distance <= sm_end){
+                    result = search_taper_table(mom, true, remaining_distance, query);
+                }
+                else{
+                    result = search_taper_table(mom, false, remaining_distance, query);
+                }
                 if(result == std::nullopt) continue;
 
                 // After adding these values the loop should exit

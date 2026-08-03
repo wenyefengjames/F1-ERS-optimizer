@@ -126,10 +126,11 @@ namespace physics {
     // With consideration of tapering
     // Inputs: initial_kmh - initial speed, in km/h
     //         distance - how long to deploy energy for
+    //         sm_start - where the SM starts. SET THIS TO -1 TO INDICATE NO SM
+    //         sm_end - where the SM ends. SET THIS TO -1 TO INDICATE NO SM
     //         mom - indicates if the car has MOM
-    //         sm_on - indicates if the car has SM
     // Output: energy gained with deployment, in Joules
-    TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, bool mom, bool sm_on);
+    TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, double sm_start, double sm_end, bool mom);
 
     // TODO: Leaving this function here for now. Remove this line from this file after testing
     const std::optional<std::vector<TaperedDeploymentResult>>& taper_table(bool mom, bool sm_on);

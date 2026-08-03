@@ -17,8 +17,9 @@ Track::Track(){
     track.push_back(std::make_unique<SlowCorner>("Turn 6                 ", 135, 88, 4.13, 280, 167, 184, 43));
     track.push_back(std::make_unique<SlowCorner>("Turn 7                 ", 74, 145, 6.17, 284, 114, 230, 50));
 
-    track.push_back(std::make_unique<Straight>("Woodcote, Turn 8                 ", 319, true, 0, 319));
-    track.push_back(std::make_unique<Straight>("Old Pit Straight", 371, true, 0, 271));
+    track.push_back(std::make_unique<Straight>("Woodcote Turn 8 - Old Pit Straight", 690, true, 0, 590));
+    // track.push_back(std::make_unique<Straight>("Woodcote, Turn 8                 ", 319, true, 0, 319));
+    // track.push_back(std::make_unique<Straight>("Old Pit Straight", 371, true, 0, 271));
 
     track.push_back(std::make_unique<FastCorner>("Copse, Turn 9              ", 109, 56, 284, 287, 100));
 
@@ -29,13 +30,15 @@ Track::Track(){
     track.push_back(std::make_unique<FastCorner>("Becketts, Turn 12          ", 77, 54, 259, 0, 80));
     track.push_back(std::make_unique<FastCorner>("Becketts, Turn 13          ", 112, 68.5, 219, 244, 55));
 
-    track.push_back(std::make_unique<Straight>("Turn 14  ", 90.5));
-    track.push_back(std::make_unique<Straight>("Hanger Straight  ", 723, true, 0, 723));
+    track.push_back(std::make_unique<Straight>("Turn 14 - Hanger Straight  ", 813.5, true, 90.5, 813.5));
+    // track.push_back(std::make_unique<Straight>("Turn 14  ", 90.5));
+    // track.push_back(std::make_unique<Straight>("Hanger Straight  ", 723, true, 0, 723));
 
     track.push_back(std::make_unique<SlowCorner>("Stowe, Turn 15             ", 132.5, 959, 3.38, 290, 236, 249, 64));
 
-    track.push_back(std::make_unique<Straight>("T15 - Pit Entry Straight  ", 157.5));
-    track.push_back(std::make_unique<Straight>("Pit Entry - T16 Straight  ", 133));
+    track.push_back(std::make_unique<Straight>("Vale Straight  ", 290.5));
+    // track.push_back(std::make_unique<Straight>("T15 - Pit Entry Straight  ", 157.5));
+    // track.push_back(std::make_unique<Straight>("Pit Entry - T16 Straight  ", 133));
 
     track.push_back(std::make_unique<SlowCorner>("Turn 16               ", 65, 30.5, 3.16, 260, 105, 113, 40));
     track.push_back(std::make_unique<FastCorner>("Turn 17               ", 36.5, 63, 130, 184, 40));
