@@ -12,6 +12,12 @@ struct TaperedDeploymentResult{
     double distance_m = 0.0;
 };
 
+struct TimeEnergyResult {
+    double energy_J = 0.0;
+    double time_s = 0.0;
+};
+
+
 
 // Drag-aware kinematics/energy formulas for the car, translated from test.py
 // once their correctness was validated there. Stateless by design (free
@@ -92,8 +98,9 @@ namespace physics {
     //         distance_m - distance to cover, in meters
     //         mom - whether the car has MOM
     //         sm_on- whether the car has SM
-    // Output: time to reach target_speed_kmh, in seconds
-    double time_to_reach_speed_over_distance(double initial_speed_kmh, double final_speed_kmh, double distance_m, bool mom, bool sm_on);
+    // Output: Time and energy harvested/deployed. If energy field is positive, it is harvesting.
+    //         Otherwise it is deploying.
+    std::optional<TimeEnergyResult> time_to_reach_speed_over_distance(double initial_speed_kmh, double final_speed_kmh, double distance_m, bool mom, bool sm_on);
 
     // The curve of how the deployment rate decreases
     // Assuming the power output decreases linearly with respect to speed

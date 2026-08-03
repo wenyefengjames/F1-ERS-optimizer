@@ -522,20 +522,22 @@ class TestTimeToReachSpeedOverDistance : public ::testing::TestWithParam<ZeroDis
 
 TEST_P(TestTimeToReachSpeedOverDistance, ConsistentOutputWhenNoChangeInVelocity){
     ZeroDistanceCheck c = GetParam();
-    double result = p::time_to_reach_speed_over_distance(180, 180, 100, c.mom, c.sm_on);
+    auto result = p::time_to_reach_speed_over_distance(180, 180, 100, c.mom, c.sm_on);
 
-    EXPECT_DOUBLE_EQ(result, 2);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_DOUBLE_EQ(result->time_s, 2);
 }
 
+// The function now signals invalid input via std::nullopt rather than a -1 sentinel.
 TEST_P(TestTimeToReachSpeedOverDistance, CheckEdgeCases){
     ZeroDistanceCheck c = GetParam();
 
-    EXPECT_DOUBLE_EQ(p::time_to_reach_speed_over_distance(0, 180, 100, c.mom, c.sm_on), -1);
-    EXPECT_DOUBLE_EQ(p::time_to_reach_speed_over_distance(-1, 180, 100, c.mom, c.sm_on), -1);
-    EXPECT_DOUBLE_EQ(p::time_to_reach_speed_over_distance(180, 0, 100, c.mom, c.sm_on), -1);
-    EXPECT_DOUBLE_EQ(p::time_to_reach_speed_over_distance(180, -1, 100, c.mom, c.sm_on), -1);
-    EXPECT_DOUBLE_EQ(p::time_to_reach_speed_over_distance(180, 180, 0, c.mom, c.sm_on), -1);
-    EXPECT_DOUBLE_EQ(p::time_to_reach_speed_over_distance(180, 180, -1, c.mom, c.sm_on), -1);
+    EXPECT_FALSE(p::time_to_reach_speed_over_distance(0, 180, 100, c.mom, c.sm_on).has_value());
+    EXPECT_FALSE(p::time_to_reach_speed_over_distance(-1, 180, 100, c.mom, c.sm_on).has_value());
+    EXPECT_FALSE(p::time_to_reach_speed_over_distance(180, 0, 100, c.mom, c.sm_on).has_value());
+    EXPECT_FALSE(p::time_to_reach_speed_over_distance(180, -1, 100, c.mom, c.sm_on).has_value());
+    EXPECT_FALSE(p::time_to_reach_speed_over_distance(180, 180, 0, c.mom, c.sm_on).has_value());
+    EXPECT_FALSE(p::time_to_reach_speed_over_distance(180, 180, -1, c.mom, c.sm_on).has_value());
 }
 
 INSTANTIATE_TEST_SUITE_P(AllModesCombination, TestTimeToReachSpeedOverDistance, testing::Values(
@@ -559,9 +561,10 @@ TEST(TimeToReachSpeedOverDistanceProperties, DeceleratingMatchesRequiredPower) {
     ASSERT_GT(r_W, 0.0); // otherwise this scenario needs braking, not coasting -- pick different vi/vf/distance if this fails
 
     double expected_time = p::time_to_reach_velocity(vf, vi, r_W / 1000.0, sm_on);
-    double actual_time = p::time_to_reach_speed_over_distance(vi, vf, distance, mom, sm_on);
+    auto actual = p::time_to_reach_speed_over_distance(vi, vf, distance, mom, sm_on);
 
-    EXPECT_NEAR(actual_time, expected_time, 1e-3);
+    ASSERT_TRUE(actual.has_value());
+    EXPECT_NEAR(actual->time_s, expected_time, 1e-3);
 }
 
 // Accelerating branch, using two distances that both comfortably reach vf
@@ -571,28 +574,26 @@ TEST(TimeToReachSpeedOverDistanceProperties, DeceleratingMatchesRequiredPower) {
 // the tapering-acceleration phase itself take" part: since both distances
 // share the same acceleration phase (same vi, vf, mom, sm_on), the only
 // difference between the two results should be (distance2-distance1)/vf_ms.
-// NOTE: this currently fails -- the trailing line in that branch
-// (`total_time += final_speed_kmh / (distance_m - total_deployed_distance);`)
-// has the fraction backwards (should be leftover_distance / speed, matching
-// the cruise branch's own formula) and never converts km/h to m/s either.
 TEST(TimeToReachSpeedOverDistanceProperties, AcceleratingCruiseTimeScalesWithLeftoverDistance) {
     double vi = 100.0, vf = 150.0;
     double distance1 = 1000.0, distance2 = 1500.0;
     bool mom = false, sm_on = false;
 
-    double time1 = p::time_to_reach_speed_over_distance(vi, vf, distance1, mom, sm_on);
-    double time2 = p::time_to_reach_speed_over_distance(vi, vf, distance2, mom, sm_on);
+    auto result1 = p::time_to_reach_speed_over_distance(vi, vf, distance1, mom, sm_on);
+    auto result2 = p::time_to_reach_speed_over_distance(vi, vf, distance2, mom, sm_on);
+    ASSERT_TRUE(result1.has_value());
+    ASSERT_TRUE(result2.has_value());
 
     double expected_extra_time = (distance2 - distance1) / (vf / 3.6);
-    EXPECT_NEAR(time2 - time1, expected_extra_time, 1e-2);
+    EXPECT_NEAR(result2->time_s - result1->time_s, expected_extra_time, 1e-2);
 }
 
 // Accelerating branch, distance far too short to reach vf at all -- even a
 // single DELTA_T step covers a fraction of a meter at these speeds, so 1m
 // is nowhere near enough to gain 50 km/h. Should hit the explicit
-// "speed not reachable" guard and return -1, not fall through to compute a
-// nonsense cruise time off a near-zero or negative leftover distance.
-TEST(TimeToReachSpeedOverDistanceEdgeCase, ReturnsNegative1WhenDistanceTooShortToReachTarget) {
-    double result = p::time_to_reach_speed_over_distance(100.0, 150.0, 1.0, false, false);
-    EXPECT_DOUBLE_EQ(result, -1.0);
+// "speed not reachable" guard and return nullopt, not fall through to
+// compute a nonsense cruise time off a near-zero or negative leftover distance.
+TEST(TimeToReachSpeedOverDistanceEdgeCase, ReturnsNulloptWhenDistanceTooShortToReachTarget) {
+    auto result = p::time_to_reach_speed_over_distance(100.0, 150.0, 1.0, false, false);
+    EXPECT_FALSE(result.has_value());
 }

@@ -52,7 +52,7 @@ namespace physics {
                         * drag_coeff(sm_on) / (1.0 - decay);
 
         // This means that the power required isn't achievable 
-        if(r / 1000 > taper_curve(initial_speed_kmh, mom) * ICE){
+        if(r / 1000 > taper_curve(initial_speed_kmh, mom) + ICE){
             return -1;
         }
 
@@ -75,26 +75,31 @@ namespace physics {
     }
 
     // TO TEST
-    double time_to_reach_speed_over_distance(double initial_speed_kmh, double final_speed_kmh, double distance_m, bool mom, bool sm_on){
+    std::optional<TimeEnergyResult> time_to_reach_speed_over_distance(double initial_speed_kmh, double final_speed_kmh, double distance_m, bool mom, bool sm_on){
         if(initial_speed_kmh <= 0 || final_speed_kmh <= 0 || distance_m <= 0){
-            return -1;
+            return std::nullopt;
         }
 
         // Superclip
         if(initial_speed_kmh > final_speed_kmh){
             double energy_diff = kinetic_energy(final_speed_kmh) - kinetic_energy(initial_speed_kmh);
-            double vi = initial_speed_kmh / 3.6;
-            double decay = std::exp(-3.0 * drag_coeff(sm_on) * distance_m / MASS_KG);
-            double r = (std::pow(vi * vi + 2.0 * energy_diff / MASS_KG, 1.5) - std::pow(vi, 3.0) * decay)
-                            * drag_coeff(sm_on) / (1.0 - decay);
+            double power = required_power(initial_speed_kmh, energy_diff, distance_m, mom, sm_on);
 
-            // r < 0 indicates that it needs breaking
-            if(r < 0) return -1;
+            // power < 0 indicates that it needs breaking
+            if(power < 0) return std::nullopt;
 
-            return time_to_reach_velocity(final_speed_kmh, initial_speed_kmh, r / 1000, sm_on);
+            double time = time_to_reach_velocity(final_speed_kmh, initial_speed_kmh, power / 1000, sm_on);
+            double energy_harvested = (ICE * 1000 - power) * time;
+
+            return TimeEnergyResult{.energy_J = energy_harvested, .time_s = time};
         }
         else if(initial_speed_kmh == final_speed_kmh){
-            return distance_m / (initial_speed_kmh / 3.6);
+            double time = distance_m / (initial_speed_kmh / 3.6);
+
+            // If positive number for 'energy' it indicates harvest, negative indicates deployment
+            double energy = time * (ICE * 1000 - required_power(initial_speed_kmh, 0, distance_m, mom, sm_on));  
+
+            return TimeEnergyResult{.energy_J = energy, .time_s = time};
         }
         else{
             double current_kmh = initial_speed_kmh; 
@@ -113,14 +118,15 @@ namespace physics {
             }
             
             // Speed not reachable
-            if(total_deployed_distance >= distance_m && current_kmh < final_speed_kmh) return -1;
+            if(total_deployed_distance >= distance_m && current_kmh < final_speed_kmh) return std::nullopt;
 
-            total_time += (distance_m - total_deployed_distance) / (final_speed_kmh / 3.6);
-            return total_time;
+            // Calculate the rest of the distance
+            double extra_time = (distance_m - total_deployed_distance) / (final_speed_kmh / 3.6);
+            double energy = extra_time * (ICE * 1000 - required_power(final_speed_kmh, 0, distance_m, mom, sm_on));
+            
+            total_time += extra_time;
+            return TimeEnergyResult{.energy_J = -total_energy_deployed + energy, .time_s = total_time};
         }
-        
-        
-        return {};  
     }
 
     double time_to_reach_velocity(double target_speed_kmh, double initial_speed_kmh, double power_kW, bool sm_on){
