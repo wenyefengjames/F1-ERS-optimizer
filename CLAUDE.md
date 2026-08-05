@@ -129,8 +129,9 @@ How to achieve each one ->
 - [x] Fix the problem that the time function doesn't give a reasonable output when the difference in speed is small -- fixed for the case that actually mattered (`vi == vf` exactly), via `time_to_reach_speed_over_distance`'s dedicated cruise branch, which never touches the degenerate antiderivative for that case. Near-equal-but-not-exactly-equal speeds were also manually stress-tested (`temp_test.cpp`, sweeping the gap down to ~0.001km/h) at the specific power where this is riskiest -- a tiny gap implies a "hold speed constant" power, whose terminal velocity sits right on the antiderivative's `log|a-vel|` singularity -- and the result converged smoothly with no instability. So the only genuinely broken case is exact equality, which is already handled separately.
 
 [ ] Optimizer:
-- [ ] Integrate the new features of both Physics and Track into the DP algorithm correctly
-- [ ] Change the harvest limit depending on having MOM or not
+- [x] Integrate the new features of Physics correctly
+- [ ] Integrate the new features of Track correctly
+- [x] Change the harvest limit depending on having MOM or not
 - [ ] Fix the bug that if I enter 0 starting battery and 0 ending battery, the output of laptime is inf
 - [ ] Implement Unit testing for Optimizer
 - [ ] Be aware that calculating the 
@@ -143,6 +144,7 @@ Bug fixes:
 - [ ] Performance: fix `segment_options()`'s redundant recomputation across `ending_battery`/`harvest` combinations that reach the same `(index, battery_charge)` state (known, deferred). Do this *after* the physics renovation above, not before — optimizing formulas that are about to be rewritten is wasted effort.
 
 Limitation:
+- Fastcorners like T1 and T2 should have apex_min_speed as the maximum speed they could achieve, the optional table should provide options where more recharging can be done to go through the corner in a lower speed than apex_min_speed. Results in a increase in delta but harvest more energy
 - SlowCorners still rely on a fixed entry speed to calculate breaking energy. In the future, where to break to harvest the best can be calculated by the optimizer.
 
 
