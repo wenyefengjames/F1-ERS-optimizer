@@ -467,8 +467,8 @@ TEST(DragCoeffTest, StraightModeHasLowerDragThanCornerMode) {
 // =========================================================================
 TEST(SearchTaperTableProperties, SearchingBySpeedReturnsMatchingSpeedBack) {
     const auto& table = p::taper_table(false, true);
-    ASSERT_GT(table.size(), 2u);
-    double query = (table.front().speed_kmh + table.back().speed_kmh) / 2.0;
+    ASSERT_GT(table->size(), 2u);
+    double query = (table->front().speed_kmh + table->back().speed_kmh) / 2.0;
 
     auto by_speed = [](const TaperedDeploymentResult& e){ return e.speed_kmh; };
     auto result = p::search_taper_table(false, true, query, by_speed);
@@ -479,8 +479,8 @@ TEST(SearchTaperTableProperties, SearchingBySpeedReturnsMatchingSpeedBack) {
 
 TEST(SearchTaperTableProperties, SearchingByDifferentFieldsAgreesWithEachOther) {
     const auto& table = p::taper_table(false, true);
-    ASSERT_GT(table.size(), 2u);
-    double query_speed = (table.front().speed_kmh + table.back().speed_kmh) / 2.0;
+    ASSERT_GT(table->size(), 2u);
+    double query_speed = (table->front().speed_kmh + table->back().speed_kmh) / 2.0;
 
     auto by_speed = [](const TaperedDeploymentResult& e){ return e.speed_kmh; };
     auto by_time  = [](const TaperedDeploymentResult& e){ return e.time_s; };
@@ -496,8 +496,8 @@ TEST(SearchTaperTableProperties, SearchingByDifferentFieldsAgreesWithEachOther) 
 
 TEST(SearchTaperTableProperties, WorksForMomTableToo) {
     const auto& table = p::taper_table(true, true);
-    ASSERT_GT(table.size(), 2u);
-    double query = (table.front().speed_kmh + table.back().speed_kmh) / 2.0;
+    ASSERT_GT(table->size(), 2u);
+    double query = (table->front().speed_kmh + table->back().speed_kmh) / 2.0;
 
     auto by_speed = [](const TaperedDeploymentResult& e){ return e.speed_kmh; };
     auto result = p::search_taper_table(true, true, query, by_speed);
