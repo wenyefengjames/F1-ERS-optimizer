@@ -1,4 +1,5 @@
 #include "../include/physics.h"
+#include <iostream>
 
 namespace physics {
 
@@ -107,7 +108,7 @@ namespace physics {
             double total_energy_deployed = 0.0;
             double total_time = 0.0;
 
-            double MGU_K_step_size = 50; //kW
+            double MGU_K_step_size = 10; //kW
             double deploy_power = 0; // kW
 
             bool flag = true;
@@ -119,6 +120,8 @@ namespace physics {
                 total_energy_deployed = 0.0;
                 total_time = 0.0;
 
+                // std::cout << "Step size: ==============" << deploy_power << "\n";
+
                 // Numerical method to approximate net KE gain
                 while(total_deployed_distance < distance_m && current_kmh < final_speed_kmh){
                     double current_power = std::min(taper_curve(current_kmh, mom), deploy_power);
@@ -127,6 +130,14 @@ namespace physics {
                     current_kmh = reverse_ke(current_kmh, ke_gained);
                     total_energy_deployed += current_power * DELTA_T * 1000;
                     total_time += DELTA_T;
+
+                    // if((int)(total_time * 100) % 20 == 0){
+                    //     std::cout << "Power: " << current_power << "\t";
+                    //     std::cout << "current_kmh: " << current_kmh << "\t";
+                    //     std::cout << "total_energy_deployed: " << total_energy_deployed << "\t";
+                    //     std::cout << "total_time: " << total_time << "\n";
+                    // }
+                    
 
                     // Check if the current speed has hit the tapering limit
                     if((current_kmh >= 290 && !mom) || (current_kmh >= 337 && mom)) {
