@@ -48,9 +48,9 @@ double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, do
     for(const Option& op : deployment_choice){
         // std::cout << "--------------------------\n";
         std::cout << circuit.at(seg_index)->get_name() << '\t';
+        std::cout << "Time spent: " << op.delta << '\t';
         std::cout << "Deployed: " << op.deploy << "MJ \t";
-        std::cout << "Harvested: " << op.harvest << "MJ \t";
-        std::cout << "Time spent: " << op.delta << '\n';
+        std::cout << "Harvested: " << op.harvest << "MJ \n";
         // std::cout << "battery before harvest: " << battery.get_harvest_charge() << '\t';
         // std::cout << "uncapped harvest: " << battery.get_harvest_charge() + op.harvest << '\t';
         // std::cout << "Is harvest full?: " << (battery.get_harvest_charge() + op.harvest 
@@ -58,10 +58,10 @@ double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, do
 
 
         // Calculate sector times
-        if(seg_index >=0 && seg_index <= 4){
+        if(seg_index >=0 && seg_index <= 6){
             sector_1 += op.delta;
         }
-        else if (seg_index >=5 && seg_index <= 11){
+        else if (seg_index >=7 && seg_index <= 15){
             sector_2 += op.delta;
         }
         else{
@@ -124,7 +124,7 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
     // This should be a vector of Option struct that gives all the strategy options for
     // the current segment of the race track that we are on. 
     std::vector<Option> current_segment = segment_options(index, battery.get_battery_charge());
-    
+
     // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
     // std::cout << "size of the segment" << current_segment.size() << '\n';
     // for(const Option& op : current_segment){
@@ -155,7 +155,7 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
         // std::cout << "battery charge: " << battery.get_battery_charge() << '\t';
         // std::cout << "harvest charge: " << battery.get_harvest_charge() << '\n';
         // std::cout << "ending battery check: " << ending_battery_ok << '\t';
-        // std::cout << " check allow charge: " << battery.check_allow_charge(option.deploy, option.harvest) << '\t';
+        // std::cout << "check allow charge: " << battery.check_allow_charge(option.deploy, option.harvest) << '\t';
         // std::cout << "Check if-statement: " << (battery.check_allow_charge(option.deploy, option.harvest) && ending_battery_ok) << '\n';
 
         if (battery.check_allow_charge(option.deploy, option.harvest) && ending_battery_ok){
@@ -227,7 +227,7 @@ std::vector<Option> Optimizer::segment_options(int seg_index, double initial_bat
         return option_table_fastcorner(seg_index, initial_battery); 
     } 
     else if(circuit.at(seg_index)->get_type() == "Straight"){
-
+        // std::cout << "Going into Straight" << "\n";
         return option_table_straight(seg_index, initial_battery);      
     }
     return option_table;
@@ -240,34 +240,85 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
     // No type check, because this function should only be called on a fast corner
     FastCorner* corner = static_cast<FastCorner*>(circuit.at(seg_index));
     std::vector<Option> option_table;
-    double current_speed = corner->get_apex_min_speed();
-    double target_speed = 0.0;
-    double length = corner->get_apex_to_exit_length() * 0.5;
+    double time_harvesting = 0.0;
+    double harvest_energy_MJ = 0.0;
+
+    // Need to treat Turn 17 and 18 seperatedly
+    if(seg_index < circuit.size() - 2){
+        double current_speed = corner->get_apex_min_speed();
+        double target_speed = 0.0;
+        double length = corner->get_apex_to_exit_length();
+
+        // Extract the target speed and length of the next segment, fast and slow corners are different here
+        Segment* next_segment = circuit.next(seg_index);
+        if(next_segment->get_type() == "SlowCorner") {
+            SlowCorner* next_corner = static_cast<SlowCorner*>(next_segment);
+            target_speed = next_corner->get_entry_speed();
+        }
+        else if(next_segment->get_type() == "FastCorner"){
+            FastCorner* next_corner = static_cast<FastCorner*>(next_segment);
+            target_speed = next_corner->get_apex_min_speed();
+            length += next_corner->get_entry_to_apex_length();
+        }
+        else if (next_segment->get_type() == "Straight") {
+            target_speed = corner->get_exit_speed();
+        }
+
+        // Add the full length to the fast corner if the previous segment is a slow corner
+        // And the starting speed would be the exit speed of the previous corner
+        Segment* prev_segment = circuit.prev(seg_index);
+        if(prev_segment->get_type() == "SlowCorner") {
+            SlowCorner* prev_corner = static_cast<SlowCorner*>(prev_segment);
+            current_speed = prev_corner->get_exit_speed();
+            length += corner->get_entry_to_apex_length();
+        }
+
+        auto results = p::time_to_reach_speed_over_distance(current_speed, target_speed, length, mom, false);
+
+        if(results == std::nullopt) {
+            // std::cout << "Null" << "\n";
+            option_table.clear();
+            return option_table;
+        }
+
+        time_harvesting = results.value().time_s;
+        harvest_energy_MJ = results.value().energy_J / 1000000;
+    }
+    else{ // Turn 17 and 18
+        double current_speed = corner->get_apex_min_speed();
+        double target_speed = corner->get_exit_speed();
+        double entry_to_apex = corner->get_entry_to_apex_length();
+        double apex_to_exit = corner->get_apex_to_exit_length();
+        double initial_speed = 0;
+
+        Segment* prev_segment = circuit.prev(seg_index);
+        if(prev_segment->get_type() == "SlowCorner") {
+            SlowCorner* prev_corner = static_cast<SlowCorner*>(prev_segment);
+            initial_speed = prev_corner->get_exit_speed();
+        }
+        else if(prev_segment->get_type() == "FastCorner"){
+            FastCorner* prev_corner = static_cast<FastCorner*>(prev_segment);
+            initial_speed = prev_corner->get_exit_speed();
+        }
+
+        auto first_half = p::time_to_reach_speed_over_distance(initial_speed, current_speed, entry_to_apex, mom, false);
+        auto sec_half = p::time_to_reach_speed_over_distance(current_speed, target_speed, apex_to_exit, mom, false);
     
-    // Extract the target speed and length of the next segment, fast and slow corners are different here
-    Segment* next_segment = circuit.next(seg_index);
-    if(next_segment->get_type() == "SlowCorner") {
-        SlowCorner* next_corner = static_cast<SlowCorner*>(next_segment);
-        target_speed = next_corner->get_entry_speed();
-    }
-    else if(next_segment->get_type() == "FastCorner"){
-        FastCorner* next_corner = static_cast<FastCorner*>(next_segment);
-        target_speed = next_corner->get_apex_min_speed();
-        length += next_corner->get_entry_to_apex_length() * 0.5;
-    }
-    else if (next_segment->get_type() == "Straight") {
-        target_speed = corner->get_exit_speed();
-    }
-
-    auto results = p::time_to_reach_speed_over_distance(current_speed, target_speed, length, mom, false);
-
-    if(results == std::nullopt) {
-        option_table.clear();
+        if(first_half == std::nullopt || sec_half == std::nullopt) {
+            // std::cout << "Null" << "\n";
+            option_table.clear();
         return option_table;
+        }
+
+        time_harvesting = first_half->time_s + sec_half->time_s;
+        harvest_energy_MJ = (first_half->energy_J + sec_half->energy_J) / 1000000;
     }
 
-    const double time_harvesting = results.value().time_s;
-    double harvest_energy_MJ = results.value().energy_J / 1000000;
+    // std::cout << "Current speed: " << current_speed << "\n";
+    // std::cout << "target_speed: " << target_speed << "\n";
+    // std::cout << "length: " << length << "\n";
+
+    // std::cout << "Crashes? " << "\n";
 
     // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
     // std::cout << "initial_battery < -harvest_energy_MJ: " << (initial_battery < -harvest_energy_MJ) << "\t";
@@ -380,12 +431,14 @@ std::vector<Option> Optimizer::option_table_straight(int seg_index, double initi
     // std::cout << "length: " << length << "\t";
     // std::cout << "init battery: " << initial_battery << "\n";
 
-    return best_option_for_bucket(length, exit_speed, target_speed, initial_battery, sm);
+    return best_option_for_bucket(length, seg_index, exit_speed, target_speed, initial_battery);
 }
 
 // Loop through the optimal energy deployment method for every partition_size meter gap
 std::vector<Option> Optimizer::best_option_for_bucket(int length, int seg_index, double exit_speed, double target_speed,
                                                       double initial_battery){
+
+    // std::cout << "Inside option bucket" << "\n";
 
     double best_time = std::numeric_limits<double>::infinity();
     double total_time = std::numeric_limits<double>::infinity();
@@ -395,6 +448,8 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, int seg_index,
     const double ke_init_speed = p::kinetic_energy(exit_speed);     // loop invariant
     Straight* seg = static_cast<Straight*>(circuit.at(seg_index));
     std::vector<Option> output;
+
+    // std::cout << "Going into option loop" << "\n";
 
     // Find the optimal time for the given energy bucket
     for (int dis = 0; dis < length / partition_size; dis++){
