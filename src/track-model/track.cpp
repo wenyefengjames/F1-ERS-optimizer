@@ -7,11 +7,11 @@ Track::Track(){
     // track.push_back(std::make_unique<Straight>("Hamilton Straight             ", 452, true, 25, 325));
     // track.push_back(std::make_unique<Straight>("Hamilton Straight             ", 410));
     track.push_back(std::make_unique<FastCorner>("Abbey, Turn 1                 ", 101, 106, 307, 295, 100));
-    track.push_back(std::make_unique<FastCorner>("Farm, Turn 2                  ", 82, 200, 286, 263, 100));
+    track.push_back(std::make_unique<FastCorner>("Farm, Turn 2                  ", 82, 170, 286, 263, 100));
 
-    track.push_back(std::make_unique<SlowCorner>("Turn 3                      ", 75, 76, 5.04, 263, 108, 141, 50));
-    track.push_back(std::make_unique<SlowCorner>("Turn 4                      ", 73, 112, 5.06, 141, 87, 184, 50));
-    track.push_back(std::make_unique<FastCorner>("Turn 5                      ", 83, 44, 237, 257, 100));
+    track.push_back(std::make_unique<SlowCorner>("Turn 3                      ", 110, 74, 5.04, 263, 108, 141, 50));
+    track.push_back(std::make_unique<SlowCorner>("Turn 4                      ", 68, 79, 5.06, 141, 87, 184, 50));
+    track.push_back(std::make_unique<FastCorner>("Turn 5                      ", 108, 53, 237, 257, 100));
 
     track.push_back(std::make_unique<Straight>("Wellington Straight           ", 585, true, 0, 585));
     // track.push_back(std::make_unique<Straight>("Wellington Straight           ", 595, true, 0, 595));
