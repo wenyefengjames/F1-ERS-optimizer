@@ -97,7 +97,7 @@ Act as a senior engineer doing code review, not as an implementer:
 - [x] GoogleTest set up; unit tests written for `Battery`, `Car`, and `Physics` (simple/linear formulas + documented edge-case behavior for all of them). The transcendental drag-ODE formulas (`work_done_with_drag`, `required_power`, `distance_to_recharge`, `time_to_reach_velocity`) deliberately have only boundary/round-trip property tests, not exact-value ones — they're about to be rewritten with numerical methods for tapering, so locking in hand-typed constants for the current closed-form versions isn't worth it. (`coasting_energy_loss` was later removed entirely — its functionality was exactly `work_done_with_drag(0, ...)` with a sign flip, so it added no coverage of its own.)
 - [x] Unit test `Track` (segment data + `next()`/`prev()` wraparound) and `Optimizer::index_helper` (the flattened-index calculation that's caused the most repeat bugs this session — will need `FRIEND_TEST` since it's private). No DP integration tests yet — blocked on `Optimizer` hardcoding its own `Track` member, so there's currently no way to inject a small fake track to hand-verify DP output against.
 - [x] clang-tidy + sanitizer builds (from the original CI plan below) — cheap to wire up now that a test suite exists to run under them; likely to catch more of the same bug class as the `Battery` constructor's uninitialized `harvest_limit` read found earlier this session.
-- [ ] Implement and bring in tapering function, alongside reworking the closed-form drag formulas in `physics.cpp` to numerical methods (a speed-dependent taper curve doesn't have a clean closed-form integral).
+- [x] Implement and bring in tapering function, alongside reworking the closed-form drag formulas in `physics.cpp` to numerical methods (a speed-dependent taper curve doesn't have a clean closed-form integral).
 - [ ] Performance: fix `segment_options()`'s redundant recomputation across `ending_battery`/`harvest` combinations that reach the same `(index, battery_charge)` state (known, deferred). Do this *after* the physics renovation above, not before — optimizing formulas that are about to be rewritten is wasted effort.
 
 ## MVP (ie the core prototype after 9 days)
@@ -111,13 +111,12 @@ What should the second prototype look like:
 
 How to achieve each one ->
 
-[ ] Track representation:
+[x] Track representation:
 - [x] Change the structure of Segment, Straight, FastCorner and SlowCorner classes to accomodate the new details and changes
 - [x] The length of every corner and straight measured
 - [x] The distance from corner entry to corner apex varies between corners, therefore more accurate representation of breaking
 - [x] Straight Mode included in straights that have them. Be aware of different starting positions of SM
-- [ ] MOM detection point at the end of T17. Probably not something to implement in track model but be aware
-- [ ] Be aware that Hamilton Straight starts 50m before the S/F line of the next lap. There is 50m more for the car to travel after finishing the last corner (T18) 
+
 
 [x] Physics model:
 - [x] Make every function Taper aware -- with one deliberate exception: `work_done_with_drag`, `distance_to_recharge`, and `time_to_reach_velocity` stay taper-agnostic on purpose (plain constant power in, no `taper_curve` knowledge). Tapering is applied by whichever function calls them repeatedly with recomputed power instead (`energy_deployed_with_taper` `time_to_reach_speed_over_distance`, `build_taper_table`).
@@ -151,11 +150,16 @@ Limitation:
 ## Third Prototype: (Deadline: 14th of August)
 What the third prototype should look like:
 - Refined physics models, turbulant air awareness, which impacts laptime and downforce
+- Multiple car simulation
+- Bring in MOM detection point
 - Attacking mode
 - Defending mode
 - Implement different models to represent the downforce and aero package of cars from different teams
 - Make the data about silverstone circuit into a seperate file, so that in the future where if we have the same structure of track data from other circuit, we can easily integrate it into our optimizer.
 - With Slow corners, we have a baseline of the fastest time to get through the corners (referenced in qualifying), but it can be very damaging to the tires. So we can look at telementry and onboards to figure out how much drivers have slown down to manage tired and benefit in the long run. 
+
+- [ ] MOM detection point at the end of T17. Probably not something to implement in track model but be aware
+- [ ] Be aware that Hamilton Straight starts 50m before the S/F line of the next lap. There is 50m more for the car to travel after finishing the last corner (T18) 
 
 ## Fourth Prototype:
 - Implement different models to represent the downforce and aero package of cars from different teams (Because, if its a slower car in front, we could deploy less to get pass, which saves battery)

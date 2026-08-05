@@ -6,8 +6,8 @@ int main() {
     
     std::string mode_input;
     std::string mom_input;
-    bool race_mode = true;
-    bool mom = false;
+    bool race_mode = false;
+    bool mom = true;
     double laptime = 0.0;
     double start_bat = 0.0;
     double end_bat = 0.0;
@@ -52,7 +52,9 @@ int main() {
 }
 
 // int main(){
-//     Optimizer ems(true, false);
+//     bool race_mode = true;
+//     bool mom = true;
+//     Optimizer ems(race_mode, mom);
 
 //     double time = 0;
 
@@ -96,25 +98,27 @@ int main() {
 //         // time += table[0].delta;
 //     // }
 
+//     double initial_bat = 3;
+    
+//     std::vector<Option> straight_table = ems.option_table_straight(0, initial_bat);
+//     // std::vector<Option> fast_corner_table = ems.option_table_fastcorner(5, initial_bat);
 //     // std::vector<Option> slow_corner_table = ems.option_table_slowcorner(4);
-//     // std::vector<Option> straight_table = ems.option_table_straight(0, 3);
-//     std::vector<Option> fast_corner_table = ems.option_table_fastcorner(5, 3);
 
-//     // std::cout << "Straight table" << '\n';
+//     std::cout << "Straight table" << '\n';
 
-//     // for(const Option& row : straight_table){
-//     //     std::cout << "Deploy: " << row.deploy << '\t';
-//     //     std::cout << "Harvest: " << row.harvest << '\t';
-//     //     std::cout << "delta: " << row.delta << '\n';
-//     // }
-
-//     std::cout << "Fast corner table" << '\n';
-
-//     for(const Option& row : fast_corner_table){
+//     for(const Option& row : straight_table){
 //         std::cout << "Deploy: " << row.deploy << '\t';
 //         std::cout << "Harvest: " << row.harvest << '\t';
 //         std::cout << "delta: " << row.delta << '\n';
 //     }
+
+//     // std::cout << "Fast corner table" << '\n';
+
+//     // for(const Option& row : fast_corner_table){
+//     //     std::cout << "Deploy: " << row.deploy << '\t';
+//     //     std::cout << "Harvest: " << row.harvest << '\t';
+//     //     std::cout << "delta: " << row.delta << '\n';
+//     // }
 
 //     // std::cout << "Slow corner table" << '\n';
     

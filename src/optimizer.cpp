@@ -439,7 +439,7 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, int seg_index,
                                                       double initial_battery){
 
     // std::cout << "Inside option bucket" << "\n";
-
+    bool sm = false;
     double best_time = std::numeric_limits<double>::infinity();
     double total_time = std::numeric_limits<double>::infinity();
     double deploy_choice = 0.0;     // Energy deployed for the best time
@@ -452,11 +452,10 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, int seg_index,
     // std::cout << "Going into option loop" << "\n";
 
     // Find the optimal time for the given energy bucket
-    for (int dis = 0; dis < length / partition_size; dis++){
+    for (int dis = 0; dis < circuit.at(seg_index)->get_length() / partition_size; dis++){
         total_time = std::numeric_limits<double>::infinity();
 
         const double deploy_dis = dis * partition_size;
-        const double harvest_dis = length - deploy_dis;
 
         // TESTING
         // std::cout << "deploy_dis: " << deploy_dis << "\t";
@@ -468,7 +467,8 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, int seg_index,
         const double speed = results.speed_kmh;
         const double time_deploying = results.time_s;
         double energy_deployed = results.energy_J;
-
+        
+        const double harvest_dis = length - results.distance_m;
         // TESTING
         // std::cout << "energy_deployed: " << energy_deployed << "\t";
         // std::cout << "ke_gained: " << ke_gained << "\t";
@@ -479,7 +479,10 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, int seg_index,
         // Because the deployment distance will only keep increasing, so the battery wont have enough for distance longer than current
         if(energy_deployed >= initial_battery * 1000000) break;
 
-        auto result_for_time_energy = p::time_to_reach_speed_over_distance(speed, target_speed, harvest_dis, mom, seg->get_sm());
+        if(deploy_dis >= seg->get_sm_end()) sm = false;
+        else sm = true;
+
+        auto result_for_time_energy = p::time_to_reach_speed_over_distance(speed, target_speed, harvest_dis, mom, sm);
         if(result_for_time_energy == std::nullopt) break;
 
         const double energy_harvested = result_for_time_energy.value().energy_J;

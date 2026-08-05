@@ -1,11 +1,13 @@
 #include "../include/physics.h"
 #include <iostream>
 #include <optional>
+#include <limits>
+#include <cmath>
 
 namespace p = physics;
 using namespace std;
 
-int main(){
+// int main(){
 
     // TaperedDeploymentResult output = p::energy_deployed_with_taper(speed, distance, mom);
     // double energy = p::work_done_with_drag(750, speed, distance);
@@ -24,28 +26,27 @@ int main(){
     // double power = p::required_power(speed, 0, 200, mom);
     // std::cout << "======================" << "\n";
     // std::cout << "Power output required" << power << "\n";
-    double initial_speed = 270.005;
-    double final_speed = 270;
-    double distance = 100;
-    bool mom = false;
-    bool sm_on = true;
 
-    int partition_size = 50;
+    // double initial_speed = 270.005;
+    // double final_speed = 270;
+    // double distance = 100;
+    // bool mom = false;
+    // bool sm_on = true;
 
-    cout << "final_speed: " << final_speed << '\n';
-    for(int i = 0; i < partition_size; i++){
-        double speed = initial_speed - i * ((initial_speed - final_speed) / partition_size);
+    // int partition_size = 50;
 
-        double ke_diff = p::kinetic_energy(final_speed) - p::kinetic_energy(speed);
-        double power = p::required_power(speed, ke_diff, distance, mom, sm_on);
-        double time = p::time_to_reach_velocity(final_speed, speed, power / 1000, sm_on);
+    // cout << "final_speed: " << final_speed << '\n';
+    // for(int i = 0; i < partition_size; i++){
+    //     double speed = initial_speed - i * ((initial_speed - final_speed) / partition_size);
 
-        cout << "Power: " << power << '\t';
-        cout << "Time: " << time << '\t';
-        cout << "Initial speed: " << speed << '\n';
-    }
+    //     double ke_diff = p::kinetic_energy(final_speed) - p::kinetic_energy(speed);
+    //     double power = p::required_power(speed, ke_diff, distance, mom, sm_on);
+    //     double time = p::time_to_reach_velocity(final_speed, speed, power / 1000, sm_on);
 
-    
+    //     cout << "Power: " << power << '\t';
+    //     cout << "Time: " << time << '\t';
+    //     cout << "Initial speed: " << speed << '\n';
+    // }
 
     // std::vector<TaperedDeploymentResult> results = p::taper_table(mom, sm_on);
 
@@ -67,4 +68,27 @@ int main(){
     // std::cout << "Time: " << result.time_s << "     ";
     // std::cout << "Distance: " << result.distance_m << "     ";
     // std::cout << "Energy: " << result.energy_J << "\n";
-}
+
+    // ================================================================
+    // Diagnostic sweep #1 (superseded -- refuted the "deeper into taper"
+    // hypothesis, kept for reference): for each straight, deploy over its
+    // full length from its real entry speed and see how far past the 290
+    // km/h taper threshold the final speed lands.
+    // StraightCheck straights[] = {
+    //     {"Hamilton",   243.0, 410.0,   25.0,  325.0},
+    //     {"Wellington", 257.0, 585.0,    0.0,  585.0},
+    //     {"Woodcote",   230.0, 690.0,    0.0,  590.0},
+    //     {"Hanger",     244.0, 813.5,   90.5,  813.5},
+    // };
+
+    // for(const auto& s : straights){
+    //     TaperedDeploymentResult r = p::energy_deployed_with_taper(s.entry_speed, s.length, s.sm_start, s.sm_end, false);
+
+    //     cout << s.name << ":\n";
+    //     cout << "  final speed_kmh: " << r.speed_kmh << "\t(gap above 290: " << r.speed_kmh - 290.0 << ")\n";
+    //     cout << "  time_s: " << r.time_s << "\n";
+    //     cout << "  distance_m: " << r.distance_m << " (requested " << s.length << ")\n";
+    //     cout << "  energy_J: " << r.energy_J << "\n\n";
+    // }
+// }
+

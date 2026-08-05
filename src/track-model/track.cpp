@@ -4,7 +4,9 @@
 Track::Track(){
 
     // TO DO, add straight mode to relavent sections of the track
-    track.push_back(std::make_unique<Straight>("Hamilton Straight             ", 410, true, 25, 325));
+    // track.push_back(std::make_unique<Straight>("Hamilton Straight             ", 410, true, 25, 325));
+    track.push_back(std::make_unique<Straight>("Hamilton Straight             ", 452, true, 25, 325));
+    // track.push_back(std::make_unique<Straight>("Hamilton Straight             ", 410));
     track.push_back(std::make_unique<FastCorner>("Abbey, Turn 1                 ", 101, 106, 307, 295, 100));
     track.push_back(std::make_unique<FastCorner>("Farm, Turn 2                  ", 82, 200, 286, 263, 100));
 
@@ -12,12 +14,15 @@ Track::Track(){
     track.push_back(std::make_unique<SlowCorner>("Turn 4                      ", 73, 112, 5.06, 141, 87, 184, 50));
     track.push_back(std::make_unique<FastCorner>("Turn 5                      ", 83, 44, 237, 257, 100));
 
-    track.push_back(std::make_unique<Straight>("Wellington Straight           ", 585, true, 0, 585));
+    // track.push_back(std::make_unique<Straight>("Wellington Straight           ", 585, true, 0, 585));
+    track.push_back(std::make_unique<Straight>("Wellington Straight           ", 595, true, 0, 595));
 
     track.push_back(std::make_unique<SlowCorner>("Turn 6                      ", 135, 88, 4.13, 280, 167, 184, 43));
     track.push_back(std::make_unique<SlowCorner>("Turn 7                      ", 74, 145, 6.17, 284, 114, 230, 50));
 
-    track.push_back(std::make_unique<Straight>("Woodcote Turn 8 - Old Pit Straight", 690, true, 0, 590));
+    // track.push_back(std::make_unique<Straight>("Woodcote Turn 8 - Old Pit Straight", 690, true, 0, 590));
+    track.push_back(std::make_unique<Straight>("Woodcote Turn 8 - Old Pit Straight", 667, true, 0, 567));
+    // track.push_back(std::make_unique<Straight>("Woodcote Turn 8 - Old Pit Straight", 690));
     // track.push_back(std::make_unique<Straight>("Woodcote, Turn 8                 ", 319, true, 0, 319));
     // track.push_back(std::make_unique<Straight>("Old Pit Straight", 371, true, 0, 271));
 
@@ -30,7 +35,8 @@ Track::Track(){
     track.push_back(std::make_unique<FastCorner>("Becketts, Turn 12             ", 77, 54, 259, 0, 80));
     track.push_back(std::make_unique<FastCorner>("Becketts, Turn 13             ", 112, 68.5, 219, 244, 55));
 
-    track.push_back(std::make_unique<Straight>("Turn 14 - Hanger Straight     ", 813.5, true, 90.5, 813.5));
+    // track.push_back(std::make_unique<Straight>("Turn 14 - Hanger Straight     ", 813.5, true, 90.5, 813.5));
+    track.push_back(std::make_unique<Straight>("Turn 14 - Hanger Straight     ", 785, true, 90.5, 785));
     // track.push_back(std::make_unique<Straight>("Turn 14  ", 90.5));
     // track.push_back(std::make_unique<Straight>("Hanger Straight  ", 723, true, 0, 723));
 
