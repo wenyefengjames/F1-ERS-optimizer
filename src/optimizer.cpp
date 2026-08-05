@@ -243,8 +243,8 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
     double time_harvesting = 0.0;
     double harvest_energy_MJ = 0.0;
 
-    // Need to treat Turn 17 and 18 seperatedly
-    if(seg_index < circuit.size() - 2){
+    // Need to treat Turn 5, Turn 17 and 18 seperatedly
+    if(seg_index < circuit.size() - 2 && seg_index != 5){
         double current_speed = corner->get_apex_min_speed();
         double target_speed = 0.0;
         double length = corner->get_apex_to_exit_length();
