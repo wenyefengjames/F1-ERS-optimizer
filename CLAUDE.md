@@ -129,12 +129,10 @@ How to achieve each one ->
 
 [ ] Optimizer:
 - [x] Integrate the new features of Physics correctly
-- [ ] Integrate the new features of Track correctly
+- [x] Integrate the new features of Track correctly
 - [x] Change the harvest limit depending on having MOM or not
 - [ ] Fix the bug that if I enter 0 starting battery and 0 ending battery, the output of laptime is inf
 - [ ] Implement Unit testing for Optimizer
-- [ ] Be aware that calculating the 
-- [ ] When deploying energy on the straight, change from a fixed max deployment of 350kW from MGU-K, to trying different values of deployment, for now it can be a fixed step-size of 25kW or 50kW
 
 Bug fixes:
 - [ ] Use clang-tidy improve coding quality
@@ -157,10 +155,11 @@ What the third prototype should look like:
 - Implement different models to represent the downforce and aero package of cars from different teams
 - Make the data about silverstone circuit into a seperate file, so that in the future where if we have the same structure of track data from other circuit, we can easily integrate it into our optimizer.
 - With Slow corners, we have a baseline of the fastest time to get through the corners (referenced in qualifying), but it can be very damaging to the tires. So we can look at telementry and onboards to figure out how much drivers have slown down to manage tired and benefit in the long run. 
-- Optimize efficiency of program. Multithreading, and the option table for each segment could probably be computed once, then reused many times.
+- Optimize efficiency of program. Multithreading, and the option table for each segment could probably be pre-computed once, then reused many times.
 
 - [ ] MOM detection point at the end of T17. Probably not something to implement in track model but be aware
 - [ ] Be aware that Hamilton Straight starts 50m before the S/F line of the next lap. There is 50m more for the car to travel after finishing the last corner (T18) 
+- [ ] When deploying energy on the straight, change from a fixed max deployment of 350kW from MGU-K, to trying different values of deployment, for now it can be a fixed step-size of 25kW or 50kW (After the optimization of caching segment tables is done, this adds a lot of computation power)
 
 ## Fourth Prototype:
 - Implement different models to represent the downforce and aero package of cars from different teams (Because, if its a slower car in front, we could deploy less to get pass, which saves battery)
