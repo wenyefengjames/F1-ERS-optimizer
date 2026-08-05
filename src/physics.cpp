@@ -106,37 +106,58 @@ namespace physics {
             double total_deployed_distance = 0.0;
             double total_energy_deployed = 0.0;
             double total_time = 0.0;
-            
-            // Numerical method to approximate net KE gain
-            while(total_deployed_distance < distance_m && current_kmh < final_speed_kmh){
-                double current_power = taper_curve(current_kmh, mom);
-                double ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * DELTA_T / 3.6, sm_on);
-                total_deployed_distance += current_kmh * DELTA_T / 3.6;
-                current_kmh = reverse_ke(current_kmh, ke_gained);
-                total_energy_deployed += current_power * DELTA_T * 1000;
-                total_time += DELTA_T;
 
-                // Check if the current speed has hit the tapering limit
-                if((current_kmh >= 290 && !mom) || (current_kmh >= 337 && mom)) {
-                    double remaining_distance = distance_m - total_deployed_distance;
+            double MGU_K_step_size = 50; //kW
+            double deploy_power = 0; // kW
 
-                    auto query = [](const TaperedDeploymentResult& field){return field.speed_kmh;};
-                    auto result = search_taper_table(mom, sm_on, final_speed_kmh, query);
+            bool flag = true;
 
-                    if(result == std::nullopt) continue;
+            // A loop to try to find the minimal amount of power from MGU-K needed to reach the target speed
+            while(flag && deploy_power <= MGU_K){
+                current_kmh = initial_speed_kmh; 
+                total_deployed_distance = 0.0;
+                total_energy_deployed = 0.0;
+                total_time = 0.0;
 
-                    if(result->distance_m > distance_m) return std::nullopt;
+                // Numerical method to approximate net KE gain
+                while(total_deployed_distance < distance_m && current_kmh < final_speed_kmh){
+                    double current_power = std::min(taper_curve(current_kmh, mom), deploy_power);
+                    double ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * DELTA_T / 3.6, sm_on);
+                    total_deployed_distance += current_kmh * DELTA_T / 3.6;
+                    current_kmh = reverse_ke(current_kmh, ke_gained);
+                    total_energy_deployed += current_power * DELTA_T * 1000;
+                    total_time += DELTA_T;
 
-                    // After adding these values the loop should exit
-                    total_time += result->time_s;
-                    total_deployed_distance += result->distance_m;
-                    total_energy_deployed += result->energy_J;
-                    current_kmh = result->speed_kmh;
+                    // Check if the current speed has hit the tapering limit
+                    if((current_kmh >= 290 && !mom) || (current_kmh >= 337 && mom)) {
+                        double remaining_distance = distance_m - total_deployed_distance;
+
+                        auto query = [](const TaperedDeploymentResult& field){return field.speed_kmh;};
+                        auto result = search_taper_table(mom, sm_on, final_speed_kmh, query);
+
+                        if(result == std::nullopt) continue;
+
+                        if(result->distance_m > distance_m) return std::nullopt;
+
+                        // After adding these values the loop should exit
+                        total_time += result->time_s;
+                        total_deployed_distance += result->distance_m;
+                        total_energy_deployed += result->energy_J;
+                        current_kmh = result->speed_kmh;
+                    }
                 }
+                
+                // Speed reachable
+                if(total_deployed_distance <= distance_m && current_kmh >= final_speed_kmh) {
+                    flag = false;
+                    break;
+                }
+
+                deploy_power += MGU_K_step_size;
             }
             
             // Speed not reachable
-            if(total_deployed_distance >= distance_m && current_kmh < final_speed_kmh) return std::nullopt;
+            if(flag) return std::nullopt;
 
             // Calculate the rest of the distance
             double extra_time = (distance_m - total_deployed_distance) / (final_speed_kmh / 3.6);
