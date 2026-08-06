@@ -1,8 +1,10 @@
 Checks: >
-    bugprone-*,
-    performance-*.
-    modernize-*,
+    bugprone-*, -bugprone-easily-swappable-parameters,
+    performance-*,
+    modernize-*, -modernize-use-trailing-return-type, -modernize-use-nodiscard,
     cppcoreguidelines-pro-type-member-init,
     clang-analyzer-*,
 WarningsAsErrors: ''
-HeaderFilterRegex: '.*'
+HeaderFilterRegex: '.*Summer project[/\\]include[/\\].*'
+
+# python "C:\Program Files\LLVM\bin\run-clang-tidy" -p build "src\\.*" "test\\.*"

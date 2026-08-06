@@ -107,7 +107,7 @@ namespace physics {
     // Inputs: speed_kmh - current speed, in km/h
     //         mom - if we have manual overide mode, boolean
     // Output: the power output, in kW
-    double taper_curve(double speed_kmh, double mom);
+    double taper_curve(double speed_kmh, bool mom);
 
     // Calculates the drag on the car
     // Inputs: speed_kmh - current speed, in km/h

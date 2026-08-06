@@ -8,8 +8,11 @@ namespace p = physics;
 
 Optimizer::Optimizer(bool race_mode, bool mom) :
                      race_mode(race_mode), mom(mom){
-    table.resize(circuit.size() * battery_buckets * battery_buckets * harvest_buckets, -1.0);
-    choice.resize(circuit.size() * battery_buckets * battery_buckets * harvest_buckets, std::nullopt);
+    auto size = circuit.size() * static_cast<long long>(battery_buckets) * 
+                static_cast<long long>(battery_buckets) * static_cast<long long>(harvest_buckets);
+
+    table.resize(size, -1.0);
+    choice.resize(size, std::nullopt);
 }
 
 // i for index: which segment are we currently in
@@ -119,7 +122,6 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
     std::optional<Option> best_path;
     double best_time = std::numeric_limits<double>::infinity();
     double total_time = std::numeric_limits<double>::infinity();
-    double remaining_time = 0.0;
     
     // This should be a vector of Option struct that gives all the strategy options for
     // the current segment of the race track that we are on. 
@@ -141,7 +143,6 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
     // Main DP loop
     for (const Option& option : current_segment){
         total_time = std::numeric_limits<double>::infinity();
-        remaining_time = 0.0;
 
         // Needs to check that the reminaing battery is at least 
         // the same amount of ending_battery at the end of the last segment
@@ -167,7 +168,7 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
             // std::cout << "current segment name: " <<  circuit.at(index)->get_name() << '\n';
             // std::cout << "next segment name: " <<  circuit.next(index)->get_name() << '\n';
 
-            remaining_time = dp_algorithm(index + 1, next_battery, ending_battery);
+            double remaining_time = dp_algorithm(index + 1, next_battery, ending_battery);
             total_time = remaining_time + option.delta;
 
             // std::cout << "remaining_time" << remaining_time << "\n";
@@ -238,7 +239,7 @@ std::vector<Option> Optimizer::segment_options(int seg_index, double initial_bat
 std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double initial_battery){
 
     // No type check, because this function should only be called on a fast corner
-    FastCorner* corner = static_cast<FastCorner*>(circuit.at(seg_index));
+    auto corner = static_cast<FastCorner*>(circuit.at(seg_index));
     std::vector<Option> option_table;
     double time_harvesting = 0.0;
     double harvest_energy_MJ = 0.0;
@@ -252,11 +253,11 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
         // Extract the target speed and length of the next segment, fast and slow corners are different here
         Segment* next_segment = circuit.next(seg_index);
         if(next_segment->get_type() == "SlowCorner") {
-            SlowCorner* next_corner = static_cast<SlowCorner*>(next_segment);
+            auto next_corner = static_cast<SlowCorner*>(next_segment);
             target_speed = next_corner->get_entry_speed();
         }
         else if(next_segment->get_type() == "FastCorner"){
-            FastCorner* next_corner = static_cast<FastCorner*>(next_segment);
+            auto next_corner = static_cast<FastCorner*>(next_segment);
             target_speed = next_corner->get_apex_min_speed();
             length += next_corner->get_entry_to_apex_length();
         }
@@ -268,7 +269,7 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
         // And the starting speed would be the exit speed of the previous corner
         Segment* prev_segment = circuit.prev(seg_index);
         if(prev_segment->get_type() == "SlowCorner") {
-            SlowCorner* prev_corner = static_cast<SlowCorner*>(prev_segment);
+            auto prev_corner = static_cast<SlowCorner*>(prev_segment);
             current_speed = prev_corner->get_exit_speed();
             length += corner->get_entry_to_apex_length();
         }
@@ -293,11 +294,11 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
 
         Segment* prev_segment = circuit.prev(seg_index);
         if(prev_segment->get_type() == "SlowCorner") {
-            SlowCorner* prev_corner = static_cast<SlowCorner*>(prev_segment);
+            auto prev_corner = static_cast<SlowCorner*>(prev_segment);
             initial_speed = prev_corner->get_exit_speed();
         }
         else if(prev_segment->get_type() == "FastCorner"){
-            FastCorner* prev_corner = static_cast<FastCorner*>(prev_segment);
+            auto prev_corner = static_cast<FastCorner*>(prev_segment);
             initial_speed = prev_corner->get_exit_speed();
         }
 
@@ -337,14 +338,14 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
 
             // Generate a list of allowed energy to harvest, the time would be the same
             for(int step = 0; step < energy_buckets; step++){
-                Option temp = {0, step * bucket_size, time_harvesting};
+                Option temp = {.deploy = 0, .harvest = step * bucket_size, .delta = time_harvesting};
                 option_table.push_back(temp);
             }
 
         }
         else{   // Deploying
             harvest_energy_MJ = bucket_size * std::ceil(-harvest_energy_MJ * (1/bucket_size));
-            Option temp = {harvest_energy_MJ, 0, time_harvesting};
+            Option temp = {.deploy = harvest_energy_MJ, .harvest = 0, .delta = time_harvesting};
             option_table.push_back(temp);
         }
     }
@@ -355,7 +356,7 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
 std::vector<Option> Optimizer::option_table_slowcorner(int seg_index){
     
     // No type check here, because this function should only be called for a slow corner
-    SlowCorner* corner = static_cast<SlowCorner*>(circuit.at(seg_index));
+    auto corner = static_cast<SlowCorner*>(circuit.at(seg_index));
     std::vector<Option> option_table;
 
     const double entry_speed = corner->get_entry_speed();
@@ -382,7 +383,7 @@ std::vector<Option> Optimizer::option_table_slowcorner(int seg_index){
         const double energy_bucket_MJ = energy * bucket_size;
 
         // The delta is invariant to deployment, can't deploy energy as grip is limitation
-        Option temp = {0.0, energy_bucket_MJ, corner_duration};
+        Option temp = {.deploy = 0.0, .harvest = energy_bucket_MJ, .delta = corner_duration};
         option_table.push_back(temp);
     }
 
@@ -392,11 +393,8 @@ std::vector<Option> Optimizer::option_table_slowcorner(int seg_index){
 // Producing a vector of Options for a Segment of Straight following with a FastCorner
 std::vector<Option> Optimizer::option_table_straight(int seg_index, double initial_battery){
     std::vector<Option> option_table;
-    bool sm = circuit.at(seg_index)->get_sm();
-    int length = circuit.at(seg_index)->get_length();
-    int bucket_num = std::round(p::BATTERY_CAPACITY / bucket_size * 2 + 1); // 1 for neutral, half of the rest goes to harvesting, other goes to deploy 
+    double length = circuit.at(seg_index)->get_length();
     double target_speed = 0.0;
-    double energy_bucket_J = 0.0;
     double exit_speed = 0.0;
 
     // Type checking and casting for the previous segment, and next segment ----------------------------
@@ -404,22 +402,22 @@ std::vector<Option> Optimizer::option_table_straight(int seg_index, double initi
     // Extract the exit speed from the previous segment, doesnt matter what type of corner it is
     Segment* prev_segment = circuit.prev(seg_index);
     if(prev_segment->get_type() == "SlowCorner") {
-        SlowCorner* corner = static_cast<SlowCorner*>(prev_segment);
+        auto corner = static_cast<SlowCorner*>(prev_segment);
         exit_speed = corner->get_exit_speed();
     }
     else if(prev_segment->get_type() == "FastCorner"){
-        FastCorner* corner = static_cast<FastCorner*>(prev_segment);
+        auto corner = static_cast<FastCorner*>(prev_segment);
         exit_speed = corner->get_exit_speed();
     }
     
     // Extract the target speed and length of the next segment, fast and slow corners are different here
     Segment* next_segment = circuit.next(seg_index);
     if(next_segment->get_type() == "SlowCorner") {
-        SlowCorner* corner = static_cast<SlowCorner*>(next_segment);
+        auto corner = static_cast<SlowCorner*>(next_segment);
         target_speed = corner->get_entry_speed();
     }
     else if(next_segment->get_type() == "FastCorner"){
-        FastCorner* corner = static_cast<FastCorner*>(next_segment);
+        auto corner = static_cast<FastCorner*>(next_segment);
         target_speed = corner->get_apex_min_speed();
         length += corner->get_entry_to_apex_length();
     }
@@ -435,26 +433,18 @@ std::vector<Option> Optimizer::option_table_straight(int seg_index, double initi
 }
 
 // Loop through the optimal energy deployment method for every partition_size meter gap
-std::vector<Option> Optimizer::best_option_for_bucket(int length, int seg_index, double exit_speed, double target_speed,
+std::vector<Option> Optimizer::best_option_for_bucket(double length, int seg_index, double exit_speed, double target_speed,
                                                       double initial_battery){
 
     // std::cout << "Inside option bucket" << "\n";
     bool sm = false;
-    double best_time = std::numeric_limits<double>::infinity();
-    double total_time = std::numeric_limits<double>::infinity();
-    double deploy_choice = 0.0;     // Energy deployed for the best time
-    double harvest_choice = 0.0;    // Energy harvested for the best time
-    const double ke_target_speed = p::kinetic_energy(target_speed); // loop invariant, so precompute
-    const double ke_init_speed = p::kinetic_energy(exit_speed);     // loop invariant
-    Straight* seg = static_cast<Straight*>(circuit.at(seg_index));
+    auto seg = static_cast<Straight*>(circuit.at(seg_index));
     std::vector<Option> output;
 
     // std::cout << "Going into option loop" << "\n";
 
     // Find the optimal time for the given energy bucket
     for (int dis = 0; dis < circuit.at(seg_index)->get_length() / partition_size; dis++){
-        total_time = std::numeric_limits<double>::infinity();
-
         const double deploy_dis = dis * partition_size;
 
         // TESTING
@@ -463,7 +453,6 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, int seg_index,
 
         TaperedDeploymentResult results  = p::energy_deployed_with_taper(exit_speed, deploy_dis, seg->get_sm_start(), seg->get_sm_end(), mom);
 
-        const double ke_gained = p::kinetic_energy(results.speed_kmh) - ke_init_speed;
         const double speed = results.speed_kmh;
         const double time_deploying = results.time_s;
         double energy_deployed = results.energy_J;
@@ -471,7 +460,6 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, int seg_index,
         const double harvest_dis = length - results.distance_m;
         // TESTING
         // std::cout << "energy_deployed: " << energy_deployed << "\t";
-        // std::cout << "ke_gained: " << ke_gained << "\t";
         // std::cout << "speed: " << speed << "\t";
         // std::cout << "time_deploying: " << time_deploying << "\n";
 
@@ -488,7 +476,7 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, int seg_index,
         const double energy_harvested = result_for_time_energy.value().energy_J;
         const double time_harvesting = result_for_time_energy.value().time_s;
 
-        total_time = time_harvesting + time_deploying;
+        const double total_time = time_harvesting + time_deploying;
 
         // TESTING
         // std::cout << "energy_harvested: " << energy_harvested << "\t";
@@ -504,7 +492,7 @@ std::vector<Option> Optimizer::best_option_for_bucket(int length, int seg_index,
         for (int energy = 0; energy < energy_harvested_buckets; energy++){
             const double energy_bucket_MJ = energy * bucket_size;
 
-            Option temp = {energy_deployed, energy_bucket_MJ, total_time};
+            Option temp = {.deploy = energy_deployed, .harvest = energy_bucket_MJ, .delta = total_time};
             output.push_back(temp);
         }
     }

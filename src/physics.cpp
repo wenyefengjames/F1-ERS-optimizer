@@ -1,5 +1,6 @@
 #include "../include/physics.h"
 #include <iostream>
+#include <numbers>
 
 namespace physics {
 
@@ -148,7 +149,8 @@ namespace physics {
 
                         if(result == std::nullopt) continue;
 
-                        if(result->distance_m > distance_m) return std::nullopt;
+                        // If the necessary distance to reach the speed is longer than the remaining distance, then its unreachable
+                        if(result->distance_m > remaining_distance) return std::nullopt;
 
                         // After adding these values the loop should exit
                         total_time += result->time_s;
@@ -192,14 +194,14 @@ namespace physics {
         auto antiderivative = [a](double vel, bool sm_on){
             double term1 = -1.0 / (3.0 * a) * std::log(std::fabs(a - vel));
             double term2 = 1.0 / (6.0 * a) * std::log(vel * vel + a * vel + a * a);
-            double term3 = -1.0 / (a * std::sqrt(3.0)) * std::atan((2.0 * vel + a) / (a * std::sqrt(3.0)));
+            double term3 = -1.0 / (a * std::numbers::sqrt3) * std::atan((2.0 * vel + a) / (a * std::numbers::sqrt3));
             return (1.0 / drag_coeff(sm_on)) * (term1 + term2 + term3);
         };
 
         return MASS_KG * (antiderivative(v, sm_on) - antiderivative(vi, sm_on));
     }
     
-    double taper_curve(double speed_kmh, double mom){
+    double taper_curve(double speed_kmh, bool mom){
         if(speed_kmh < 0) return -1;
 
         double power_output; // in kW
@@ -281,7 +283,8 @@ namespace physics {
             }
         }
 
-        TaperedDeploymentResult output = {current_kmh, total_energy_deployed, total_time, total_deployed_distance};
+        TaperedDeploymentResult output = {.speed_kmh = current_kmh, .energy_J = total_energy_deployed,
+                                          .time_s = total_time, .distance_m = total_deployed_distance};
         return output; 
     }
 
@@ -303,7 +306,8 @@ namespace physics {
         // the table is less than the minimum value, searching will give the iterator pointing to 
         // table.begin(). This line makes sure that it is genuinely not in the table, rather than just
         // the needed value is small so it wants the first field of the table.
-        output.push_back({current_kmh, total_energy_deployed, total_time, total_deployed_distance});
+        output.push_back({.speed_kmh = current_kmh, .energy_J = total_energy_deployed,
+                          .time_s = total_time, .distance_m = total_deployed_distance});
 
         // Generate the table
         while(total_time <= max_time && current_kmh <= 355){
@@ -314,7 +318,8 @@ namespace physics {
             total_energy_deployed += current_power * delta_t * 1000;
             total_time += delta_t;
 
-            output.push_back({current_kmh, total_energy_deployed, total_time, total_deployed_distance});
+            output.push_back({.speed_kmh = current_kmh, .energy_J = total_energy_deployed,
+                              .time_s = total_time, .distance_m = total_deployed_distance});
         }
 
         return output;

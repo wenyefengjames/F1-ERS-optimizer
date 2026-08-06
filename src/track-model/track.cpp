@@ -89,12 +89,12 @@ Segment*  Track::at(int index){
 
 // Move to the next segment
 void Track::incre(){
-    index = (index + 1) % track.size();
+    index = (index + 1) % static_cast<int>(track.size());
 }
 
 // Move to previous next segment
 void Track::decre(){
-    index = (index + track.size() - 1) % track.size();
+    index = (index + track.size() - 1) % static_cast<int>(track.size());
 }
 
 // Reset to the first segment
@@ -104,7 +104,7 @@ void Track::reset(){
 
 // Return the number of segments in the track
 int Track::size(){
-    return track.size();
+    return static_cast<int>(track.size());
 }
 
 // Return the current index

@@ -127,12 +127,11 @@ How to achieve each one ->
 - [x] Lookup table for Tapering, improve efficiency -- `build_taper_table` / `taper_table` / `search_taper_table`.
 - [x] Fix the problem that the time function doesn't give a reasonable output when the difference in speed is small -- fixed for the case that actually mattered (`vi == vf` exactly), via `time_to_reach_speed_over_distance`'s dedicated cruise branch, which never touches the degenerate antiderivative for that case. Near-equal-but-not-exactly-equal speeds were also manually stress-tested (`temp_test.cpp`, sweeping the gap down to ~0.001km/h) at the specific power where this is riskiest -- a tiny gap implies a "hold speed constant" power, whose terminal velocity sits right on the antiderivative's `log|a-vel|` singularity -- and the result converged smoothly with no instability. So the only genuinely broken case is exact equality, which is already handled separately.
 
-[ ] Optimizer:
+[x] Optimizer:
 - [x] Integrate the new features of Physics correctly
 - [x] Integrate the new features of Track correctly
 - [x] Change the harvest limit depending on having MOM or not
 - [x] Fix the bug that if I enter 0 starting battery and 0 ending battery, the output of laptime is inf (Found the bug, starting with 0 battery means no deployment in Hamilton Straight, can't reach the target speed of Turn 1 with just ICE. Haven't implemented the feature where the speed reaching fast corner's apex speed doesn't need to be exactly the speed. Therefore not fixable for now)
-- [ ] Implement Unit testing for Optimizer
 
 Bug fixes:
 - [ ] Use clang-tidy improve coding quality

@@ -38,7 +38,7 @@ class Optimizer{
         std::vector<Option> option_table_straight(int seg_index, double initial_battery);
         std::vector<Option> option_table_slowcorner(int seg_index);
         std::vector<Option> option_table_fastcorner(int seg_index, double initial_battery);  
-        std::vector<Option> best_option_for_bucket(int length, int seg_index, double exit_speed, 
+        std::vector<Option> best_option_for_bucket(double length, int seg_index, double exit_speed, 
                                                     double target_speed, double initial_battery);
         // Helper function to flatten the 4D table into 1D by translating index positions
         int index_helper(int i, double b, double e, double h);
@@ -47,7 +47,6 @@ class Optimizer{
 
         double main_optimizing_loop(int seg_index, double initial_battery, double ending_battery, double harvest);
         double dp_algorithm(int index, Battery battery, double ending_battery);
-        double estimate_deploy_distance();
         std::vector<Option> path_reconstruction(int starting_index, double battery, double ending_battery, double harvest);
         std::vector<Option> segment_options(int seg_index, double initial_battery);
 };
