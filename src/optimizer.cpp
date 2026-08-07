@@ -19,12 +19,12 @@ Optimizer::Optimizer(bool race_mode, bool mom) :
 // b for battery level: since it is a stepping of 0.1 between 0-4. We will multiply this by 10 to give int
 // e for ending battery level: same as b
 // h for harvest: to stop the algorithm from reaching over the harvest limit
-int Optimizer::index_helper(int i, double b, double e, double h){
+unsigned int Optimizer::index_helper(int i, double b, double e, double h){
     int b_bucket = static_cast<int>(std::round(b * (1/bucket_size)));
     int e_bucket = static_cast<int>(std::round(e * (1/bucket_size)));
     int h_bucket = static_cast<int>(std::round(h * (1/bucket_size)));
 
-    int value = h_bucket * (circuit.size() * battery_buckets * battery_buckets) + 
+    unsigned int value = h_bucket * (circuit.size() * battery_buckets * battery_buckets) + 
                 (e_bucket * circuit.size() * battery_buckets + (i * battery_buckets + b_bucket));
     return value;
 }
@@ -110,7 +110,7 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
     // std::cout << "prev segment name: " <<  circuit.prev(index)->get_name() << '\n';
     // std::cout << "next segment name: " <<  circuit.next(index)->get_name() << '\n';
 
-    int i = index_helper(index, battery.get_battery_charge(), ending_battery, battery.get_harvest_charge());
+    unsigned int i = index_helper(index, battery.get_battery_charge(), ending_battery, battery.get_harvest_charge());
 
     // Return value immediately if there is a memoization of the current state
     if (table.at(i) != -1){
@@ -194,7 +194,7 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
 // only runs after optimization is done, ie run on the same starting battery level as the table
 std::vector<Option> Optimizer::path_reconstruction(int starting_index, double battery, double ending_battery, double harvest){
     std::vector<Option> path;
-    int index = 0;
+    unsigned int index = 0;
 
     for (int i = starting_index; i < circuit.size(); i++){
         index = index_helper(i, battery, ending_battery, harvest);

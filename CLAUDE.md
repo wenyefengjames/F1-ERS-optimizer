@@ -142,6 +142,7 @@ Bug fixes:
 Limitation:
 - Fastcorners like T1 and T2 should have apex_min_speed as the maximum speed they could achieve, the optional table should provide options where more recharging can be done to go through the corner in a lower speed than apex_min_speed. Results in a increase in delta but harvest more energy
 - SlowCorners still rely on a fixed entry speed to calculate breaking energy. In the future, where to break to harvest the best can be calculated by the optimizer.
+- In best_option_for_bucket(), the harvest-phase will use the Straight Mode from the start of the harvesting all the way till the end. Even if we cross the part where SM should close
 
 
 ## Third Prototype: (Deadline: 14th of August)
@@ -155,6 +156,10 @@ What the third prototype should look like:
 - Make the data about silverstone circuit into a seperate file, so that in the future where if we have the same structure of track data from other circuit, we can easily integrate it into our optimizer.
 - With Slow corners, we have a baseline of the fastest time to get through the corners (referenced in qualifying), but it can be very damaging to the tires. So we can look at telementry and onboards to figure out how much drivers have slown down to manage tired and benefit in the long run. 
 - Optimize efficiency of program. Multithreading, and the option table for each segment could probably be pre-computed once, then reused many times.
+
+- [ ] Refined Physics
+--  [ ] Add a parameter to drag_coeff() that tells the time difference of the car infront, this should determine the drag and also affect downforce
+-- 
 
 - [ ] MOM detection point at the end of T17. Probably not something to implement in track model but be aware
 - [ ] Be aware that Hamilton Straight starts 50m before the S/F line of the next lap. There is 50m more for the car to travel after finishing the last corner (T18) 
