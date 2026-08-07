@@ -3,7 +3,7 @@
 SlowCorner::SlowCorner(std::string name, double entry_to_apex_length, double apex_to_exit_length,
                        double time, double entry_speed, double apex_min_speed, double exit_speed, 
                        double throttle_percentage) 
-                      : Segment(std::move(name), "SlowCorner", entry_to_apex_length + apex_to_exit_length),
+                      : Segment(std::move(name), SegmentType::SlowCorner, entry_to_apex_length + apex_to_exit_length),
                         entry_to_apex_length(entry_to_apex_length), apex_to_exit_length(apex_to_exit_length),  
                         time(time), entry_speed(entry_speed), apex_min_speed(apex_min_speed), exit_speed(exit_speed), 
                         throttle_percentage(throttle_percentage){

@@ -1,18 +1,18 @@
 #include "../../include/segment.h"
 
-Segment::Segment(std::string name, std::string type, double length)
-                : name(std::move(name)), type(std::move(type)), length(length){
+Segment::Segment(std::string name, SegmentType type, double length)
+                : name(std::move(name)), type(type), length(length){
 }
 
-Segment::Segment(std::string name, std::string type, double length, bool sm)
-                : name(std::move(name)), type(std::move(type)), length(length), sm(sm){
+Segment::Segment(std::string name, SegmentType type, double length, bool sm)
+                : name(std::move(name)), type(type), length(length), sm(sm){
 }
 
-std::string Segment::get_name() const{
+const std::string& Segment::get_name() const{
     return this->name;
 }
 
-std::string Segment::get_type() const{
+SegmentType Segment::get_type() const{
     return this->type;
 }
 

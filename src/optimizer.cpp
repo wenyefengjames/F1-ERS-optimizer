@@ -219,15 +219,15 @@ std::vector<Option> Optimizer::path_reconstruction(int starting_index, double ba
 std::vector<Option> Optimizer::segment_options(int seg_index, double initial_battery){
     std::vector<Option> option_table;    
 
-    if (circuit.at(seg_index)->get_type() == "SlowCorner"){
+    if (circuit.at(seg_index)->get_type() == SegmentType::SlowCorner){
 
         return option_table_slowcorner(seg_index);
     } 
-    else if(circuit.at(seg_index)->get_type() == "FastCorner"){
+    else if(circuit.at(seg_index)->get_type() == SegmentType::FastCorner){
 
         return option_table_fastcorner(seg_index, initial_battery); 
     } 
-    else if(circuit.at(seg_index)->get_type() == "Straight"){
+    else if(circuit.at(seg_index)->get_type() == SegmentType::Straight){
         // std::cout << "Going into Straight" << "\n";
         return option_table_straight(seg_index, initial_battery);      
     }
@@ -252,23 +252,23 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
 
         // Extract the target speed and length of the next segment, fast and slow corners are different here
         Segment* next_segment = circuit.next(seg_index);
-        if(next_segment->get_type() == "SlowCorner") {
+        if(next_segment->get_type() == SegmentType::SlowCorner) {
             auto next_corner = static_cast<SlowCorner*>(next_segment);
             target_speed = next_corner->get_entry_speed();
         }
-        else if(next_segment->get_type() == "FastCorner"){
+        else if(next_segment->get_type() == SegmentType::FastCorner){
             auto next_corner = static_cast<FastCorner*>(next_segment);
             target_speed = next_corner->get_apex_min_speed();
             length += next_corner->get_entry_to_apex_length();
         }
-        else if (next_segment->get_type() == "Straight") {
+        else if (next_segment->get_type() == SegmentType::Straight) {
             target_speed = corner->get_exit_speed();
         }
 
         // Add the full length to the fast corner if the previous segment is a slow corner
         // And the starting speed would be the exit speed of the previous corner
         Segment* prev_segment = circuit.prev(seg_index);
-        if(prev_segment->get_type() == "SlowCorner") {
+        if(prev_segment->get_type() == SegmentType::SlowCorner) {
             auto prev_corner = static_cast<SlowCorner*>(prev_segment);
             current_speed = prev_corner->get_exit_speed();
             length += corner->get_entry_to_apex_length();
@@ -293,11 +293,11 @@ std::vector<Option> Optimizer::option_table_fastcorner(int seg_index, double ini
         double initial_speed = 0;
 
         Segment* prev_segment = circuit.prev(seg_index);
-        if(prev_segment->get_type() == "SlowCorner") {
+        if(prev_segment->get_type() == SegmentType::SlowCorner) {
             auto prev_corner = static_cast<SlowCorner*>(prev_segment);
             initial_speed = prev_corner->get_exit_speed();
         }
-        else if(prev_segment->get_type() == "FastCorner"){
+        else if(prev_segment->get_type() == SegmentType::FastCorner){
             auto prev_corner = static_cast<FastCorner*>(prev_segment);
             initial_speed = prev_corner->get_exit_speed();
         }
@@ -401,22 +401,22 @@ std::vector<Option> Optimizer::option_table_straight(int seg_index, double initi
 
     // Extract the exit speed from the previous segment, doesnt matter what type of corner it is
     Segment* prev_segment = circuit.prev(seg_index);
-    if(prev_segment->get_type() == "SlowCorner") {
+    if(prev_segment->get_type() == SegmentType::SlowCorner) {
         auto corner = static_cast<SlowCorner*>(prev_segment);
         exit_speed = corner->get_exit_speed();
     }
-    else if(prev_segment->get_type() == "FastCorner"){
+    else if(prev_segment->get_type() == SegmentType::FastCorner){
         auto corner = static_cast<FastCorner*>(prev_segment);
         exit_speed = corner->get_exit_speed();
     }
     
     // Extract the target speed and length of the next segment, fast and slow corners are different here
     Segment* next_segment = circuit.next(seg_index);
-    if(next_segment->get_type() == "SlowCorner") {
+    if(next_segment->get_type() == SegmentType::SlowCorner) {
         auto corner = static_cast<SlowCorner*>(next_segment);
         target_speed = corner->get_entry_speed();
     }
-    else if(next_segment->get_type() == "FastCorner"){
+    else if(next_segment->get_type() == SegmentType::FastCorner){
         auto corner = static_cast<FastCorner*>(next_segment);
         target_speed = corner->get_apex_min_speed();
         length += corner->get_entry_to_apex_length();
