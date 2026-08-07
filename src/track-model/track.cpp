@@ -94,7 +94,7 @@ void Track::incre(){
 
 // Move to previous next segment
 void Track::decre(){
-    index = (index + track.size() - 1) % static_cast<int>(track.size());
+    index = (index + static_cast<int>(track.size()) - 1) % static_cast<int>(track.size());
 }
 
 // Reset to the first segment

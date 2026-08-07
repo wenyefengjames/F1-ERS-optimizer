@@ -486,7 +486,7 @@ std::vector<Option> Optimizer::best_option_for_bucket(double length, int seg_ind
         // std::cout << "============================ " << "\n";
 
         energy_deployed = bucket_size * std::ceil(energy_deployed  / 1000000 * (1/bucket_size));
-        int energy_harvested_buckets = 1 + std::floor(energy_harvested / 1000000 * (1/bucket_size));
+        int energy_harvested_buckets = 1 + static_cast<int>(std::floor(energy_harvested / 1000000 * (1/bucket_size)));
 
         // Option table generating loop, doesn't need to harvest all the energy given
         for (int energy = 0; energy < energy_harvested_buckets; energy++){

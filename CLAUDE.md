@@ -134,7 +134,7 @@ How to achieve each one ->
 - [x] Fix the bug that if I enter 0 starting battery and 0 ending battery, the output of laptime is inf (Found the bug, starting with 0 battery means no deployment in Hamilton Straight, can't reach the target speed of Turn 1 with just ICE. Haven't implemented the feature where the speed reaching fast corner's apex speed doesn't need to be exactly the speed. Therefore not fixable for now)
 
 Bug fixes:
-- [ ] Use clang-tidy improve coding quality
+- [x] Use clang-tidy improve coding quality
 - [x] Optimizer: Fix the bug that if I enter 0 starting battery and 0 ending battery, the output of laptime is inf (Found the bug, starting with 0 battery means no deployment in Hamilton Straight, can't reach the target speed of Turn 1 with just ICE. Haven't implemented the feature where the speed reaching fast corner's apex speed doesn't need to be exactly the speed. Therefore not fixable for now)
 - [x] Physics: Fix the bug that the time function doesn't give a reasonable output when the difference in speed is small
 - [ ] Performance: fix `segment_options()`'s redundant recomputation across `ending_battery`/`harvest` combinations that reach the same `(index, battery_charge)` state (known, deferred). (This will be fixed when the feature of each segment option table gets cached is implemented, which would be a bigger performance improvement than this)
