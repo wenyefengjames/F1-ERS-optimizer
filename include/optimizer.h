@@ -20,11 +20,12 @@ class Optimizer{
         const int battery_buckets = 4.0/bucket_size + 1;
         bool race_mode;
         bool mom;
-        // Track circuit = Track(); TO DO REMOVE THIS COMMENT AFTER TESTING
+        // Track circuit = Track(); // TO DO REMOVE THIS COMMENT AFTER TESTING
         Car car = Car(race_mode, mom);
         const int harvest_buckets = car.get_battery().get_harvest_limit() / bucket_size + 1;
-        std::vector<double> table;    // Table for memoization
-        std::vector<std::optional<Option>> choice;   // Table for path reconstruction
+        std::vector<double> table;                      // Table for memoization
+        std::vector<std::optional<Option>> choice;      // Table for path reconstruction
+        std::vector<std::vector<Option>> option_table_lookup_table;     // Table for lookup of every segment's option table
 
         // TO DO REMOVE THIS COMMENT AFTER TESTING
         std::vector<Option> option_table_straight(int seg_index, double initial_battery);
@@ -32,6 +33,7 @@ class Optimizer{
         std::vector<Option> option_table_fastcorner(int seg_index, double initial_battery);  
         std::vector<Option> best_option_for_bucket(double length, int seg_index, double exit_speed, 
                                                     double target_speed, double initial_battery);
+        void initialize_option_table_lookup_table();
 
     public:
         Track circuit = Track();

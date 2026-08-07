@@ -7,12 +7,15 @@
 namespace p = physics;
 
 Optimizer::Optimizer(bool race_mode, bool mom) :
-                     race_mode(race_mode), mom(mom){
+                     race_mode(race_mode), mom(race_mode ? mom : true){
+
     auto size = circuit.size() * static_cast<long long>(battery_buckets) * 
                 static_cast<long long>(battery_buckets) * static_cast<long long>(harvest_buckets);
 
     table.resize(size, -1.0);
     choice.resize(size, std::nullopt);
+
+    initialize_option_table_lookup_table();
 }
 
 // i for index: which segment are we currently in
@@ -125,7 +128,8 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
     
     // This should be a vector of Option struct that gives all the strategy options for
     // the current segment of the race track that we are on. 
-    std::vector<Option> current_segment = segment_options(index, battery.get_battery_charge());
+    // std::vector<Option> current_segment = segment_options(index, battery.get_battery_charge());
+    const std::vector<Option>& current_segment = option_table_lookup_table[index];
 
     // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
     // std::cout << "size of the segment" << current_segment.size() << '\n';
@@ -499,3 +503,11 @@ std::vector<Option> Optimizer::best_option_for_bucket(double length, int seg_ind
     return output;
 }
 
+
+void Optimizer::initialize_option_table_lookup_table(){
+    option_table_lookup_table.resize(circuit.size());
+
+    for(int i = 0; i< circuit.size(); ++i){
+        option_table_lookup_table[i] = segment_options(i, p::BATTERY_CAPACITY);
+    }
+}
