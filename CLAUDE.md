@@ -158,9 +158,9 @@ What the third prototype should look like:
 - With Slow corners, we have a baseline of the fastest time to get through the corners (referenced in qualifying), but it can be very damaging to the tires. So we can look at telementry and onboards to figure out how much drivers have slown down to manage tired and benefit in the long run. 
 
 - [ ] Performance
--- [ ] Computing each Segment's option tables once and cache it. Then during DP it wouldn't need to compute them anymore. 
+-- [x] Computing each Segment's option tables once and cache it. Then during DP it wouldn't need to compute them anymore. 
 -- [ ] Multithreading, threadpool
--- [ ] Go through track models and minimize unnecessary memory copies
+-- [x] Go through track models and minimize unnecessary memory copies
 
 - [ ] Refined Physics
 -- [ ] Add a parameter to drag_coeff() that tells the time difference of the car infront, this should determine the drag and also affect downforce
