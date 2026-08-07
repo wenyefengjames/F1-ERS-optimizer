@@ -20,7 +20,7 @@ class Optimizer{
         const int battery_buckets = 4.0/bucket_size + 1;
         bool race_mode;
         bool mom;
-        // Track circuit = Track(); // TO DO REMOVE THIS COMMENT AFTER TESTING
+        Track circuit = Track(); // TO DO REMOVE THIS COMMENT AFTER TESTING
         Car car = Car(race_mode, mom);
         const int harvest_buckets = car.get_battery().get_harvest_limit() / bucket_size + 1;
         std::vector<double> table;                      // Table for memoization
@@ -36,7 +36,7 @@ class Optimizer{
         void initialize_option_table_lookup_table();
 
     public:
-        Track circuit = Track();
+        // Track circuit = Track();
         // std::vector<Option> option_table_straight(int seg_index, double initial_battery);
         // std::vector<Option> option_table_slowcorner(int seg_index);
         // std::vector<Option> option_table_fastcorner(int seg_index, double initial_battery);  
