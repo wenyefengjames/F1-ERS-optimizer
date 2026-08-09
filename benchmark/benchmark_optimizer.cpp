@@ -16,6 +16,13 @@ static void BM_OptionTableLookUpInitialize(benchmark::State& state) {
 }
 BENCHMARK(BM_OptionTableLookUpInitialize);
 
+static void BM_InitializeOptionTableLookupTable(benchmark::State& state){
+    for(auto _ : state){
+        glob.initialize_option_table_lookup_table();
+    }
+}
+BENCHMARK(BM_InitializeOptionTableLookupTable);
+
 // ==============================================
 // option_table_straight()
 // ==============================================

@@ -161,7 +161,7 @@ What the third prototype should look like:
 [ ] Performance
 - [x] Computing each Segment's option tables once and cache it. Then during DP it wouldn't need to compute them anymore. 
 - [x] Install Google Benchmark
-- [ ] Multithreading, threadpool
+- [ ] Multithreading, threadpool (Instead of using mutex to write into the same memory space. Since The option table lookup table has a separate cell for each segment. Each thread could handle one segment by itself without worrying about writing into the same memory at all. Which can be a better multithreading implementation, disjoint memory regions > mutex)
 - [x] Go through track models and minimize unnecessary memory copies
 - [x] After installing Google Benchmark. Re-run the old no cache dp algorithm and compare to the new cached dp algorithm
 
