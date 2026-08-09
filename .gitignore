@@ -9,3 +9,5 @@ build-asan/
 *.docx
 
 build-release/
+
+.claude/
