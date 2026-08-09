@@ -7,3 +7,5 @@ build/
 build-asan/
 
 *.docx
+
+build-release/

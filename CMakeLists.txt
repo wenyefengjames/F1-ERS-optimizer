@@ -57,3 +57,22 @@ set_target_properties(unit_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BI
  
 include(GoogleTest)
 gtest_discover_tests(unit_tests)
+
+# ---- Google Benchmark ----
+# Must be set before FetchContent_MakeAvailable pulls in benchmark's own
+# CMakeLists.txt -- otherwise it builds its own internal test suite against
+# a second, separately-fetched copy of GTest.
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+    benchmark
+    URL https://github.com/google/benchmark/archive/refs/tags/v1.9.1.zip
+)
+FetchContent_MakeAvailable(benchmark)
+
+add_executable(benchmarks
+    benchmark/benchmark_physics.cpp
+    benchmark/benchmark_optimizer.cpp
+)
+target_link_libraries(benchmarks PRIVATE ERSCore benchmark::benchmark_main)
+
+set_target_properties(benchmarks PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )

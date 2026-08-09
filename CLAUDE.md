@@ -67,8 +67,9 @@ energy management a genuinely tight, interesting problem rather than a simple
 - Language standard: C++20
 - header/.h files live in include/, source/.cpp files live in src/
 - In physics.cpp, physics work in Joules. In Battery class, energy is stored as MJ
-- Testing: Google Test — next up, see Progress log
+- Testing: Google Test
 - Debugging: Clang-tidy, Sanitizer
+- Performance Benchmarking: Google Benchmark
 - Later: FastF1 (Python) for data, pybind11 for C++/Python bridge (tentative),
   GitHub Actions for CI, Docker
 
@@ -157,27 +158,29 @@ What the third prototype should look like:
 - Make the data about silverstone circuit into a seperate file, so that in the future where if we have the same structure of track data from other circuit, we can easily integrate it into our optimizer.
 - With Slow corners, we have a baseline of the fastest time to get through the corners (referenced in qualifying), but it can be very damaging to the tires. So we can look at telementry and onboards to figure out how much drivers have slown down to manage tired and benefit in the long run. 
 
-- [ ] Performance
--- [x] Computing each Segment's option tables once and cache it. Then during DP it wouldn't need to compute them anymore. 
--- [ ] Multithreading, threadpool
--- [x] Go through track models and minimize unnecessary memory copies
+[ ] Performance
+- [x] Computing each Segment's option tables once and cache it. Then during DP it wouldn't need to compute them anymore. 
+- [ ] Install Google Benchmark
+- [ ] Multithreading, threadpool
+- [x] Go through track models and minimize unnecessary memory copies
+- [ ] After installing Google Benchmark. Re-run the old no cache dp algorithm and compare to the new cached dp algorithm
 
-- [ ] Refined Physics
--- [ ] Add a parameter to drag_coeff() that tells the time difference of the car infront, this should determine the drag and also affect downforce
--- [ ] A function should return how much will the laptime get affected depending on how close we are to the car in front. This can change the time through a slow corner by a percentage, reduce the exit speed and apex min speed through a fast corner. etc
--- [ ] 
+[ ] Refined Physics
+- [ ] Add a parameter to drag_coeff() that tells the time difference of the car infront, this should determine the drag and also affect downforce
+- [ ] A function should return how much will the laptime get affected depending on how close we are to the car in front. This can change the time through a slow corner by a percentage, reduce the exit speed and apex min speed through a fast corner. etc
+- [ ] 
 
-- [ ] Car model
--- [ ] Variable fuel load. With qualifying you would start off with 2 laps of fuel. With race you would start off with more. 
+[ ] Car model
+- [ ] Variable fuel load. With qualifying you would start off with 2 laps of fuel. With race you would start off with more. 
 
-- [ ] Optimizer
--- [ ] Slow corners: The breaking distance, and entry speed can vary depending on the recharging needs
--- [ ] Fast corners: We have apex_min_speed as a cap to the max speed we can go through. We can try a number of different speeds 
--- [ ] Straight: the deployment doesn't have to hard code as 350kW from MGU-K. We can try deploy in different amount, like step_size in the exits of fast corner. We also doesn't have to keep it constant. Could deploy max for 100m, then 200kW for another 50. Then 0, then recharge etc.
+[ ] Optimizer
+- [ ] Slow corners: The breaking distance, and entry speed can vary depending on the recharging needs
+- [ ] Fast corners: We have apex_min_speed as a cap to the max speed we can go through. We can try a number of different speeds 
+- [ ] Straight: the deployment doesn't have to hard code as 350kW from MGU-K. We can try deploy in different amount, like step_size in the exits of fast corner. We also doesn't have to keep it constant. Could deploy max for 100m, then 200kW for another 50. Then 0, then recharge etc.
 
-- [ ] Race Mode
--- [ ] This might be a bigger DP choice over multiple laps over the small DP algorithm.
--- [ ] Input Parameters can be: Aiming to gain X seconds over Y laps. With a starting battery of A and resulting battery of B. 
+[ ] Race Mode
+- [ ] This might be a bigger DP choice over multiple laps over the small DP algorithm.
+- [ ] Input Parameters can be: Aiming to gain X seconds over Y laps. With a starting battery of A and resulting battery of B. 
 
 
 
