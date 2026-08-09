@@ -169,3 +169,34 @@ static void BM_OptionTableSlowCorner_T3(benchmark::State& state){
     }
 }
 BENCHMARK(BM_OptionTableSlowCorner_T3);
+
+
+// ==============================================
+// Algorithms that runs the program
+// ==============================================
+
+static void BM_DPAlgorithm(benchmark::State& state){
+    for(auto _ : state){
+        state.PauseTiming();
+        Optimizer opt = Optimizer(false, true);
+        Battery batt = Battery(4, 0, false, true);
+        state.ResumeTiming();
+
+        auto result = opt.dp_algorithm(0, batt, 0);
+        benchmark::DoNotOptimize(result);
+    }
+}
+BENCHMARK(BM_DPAlgorithm);
+
+
+static void BM_PathReconstruction(benchmark::State& state){
+    Battery batt = Battery(initial_battery, 0, false, true);
+    Optimizer opt = Optimizer(false, true);
+    double time = opt.dp_algorithm(0, batt, 0);
+
+    for(auto _ : state){
+        auto result = opt.path_reconstruction(0, initial_battery, 0, 0);
+        benchmark::DoNotOptimize(result);
+    }
+}
+BENCHMARK(BM_PathReconstruction);

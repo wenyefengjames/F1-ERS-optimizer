@@ -160,10 +160,10 @@ What the third prototype should look like:
 
 [ ] Performance
 - [x] Computing each Segment's option tables once and cache it. Then during DP it wouldn't need to compute them anymore. 
-- [ ] Install Google Benchmark
+- [x] Install Google Benchmark
 - [ ] Multithreading, threadpool
 - [x] Go through track models and minimize unnecessary memory copies
-- [ ] After installing Google Benchmark. Re-run the old no cache dp algorithm and compare to the new cached dp algorithm
+- [x] After installing Google Benchmark. Re-run the old no cache dp algorithm and compare to the new cached dp algorithm
 
 [ ] Refined Physics
 - [ ] Add a parameter to drag_coeff() that tells the time difference of the car infront, this should determine the drag and also affect downforce
