@@ -99,7 +99,7 @@ Act as a senior engineer doing code review, not as an implementer:
 - [x] Unit test `Track` (segment data + `next()`/`prev()` wraparound) and `Optimizer::index_helper` (the flattened-index calculation that's caused the most repeat bugs this session — will need `FRIEND_TEST` since it's private). No DP integration tests yet — blocked on `Optimizer` hardcoding its own `Track` member, so there's currently no way to inject a small fake track to hand-verify DP output against.
 - [x] clang-tidy + sanitizer builds (from the original CI plan below) — cheap to wire up now that a test suite exists to run under them; likely to catch more of the same bug class as the `Battery` constructor's uninitialized `harvest_limit` read found earlier this session.
 - [x] Implement and bring in tapering function, alongside reworking the closed-form drag formulas in `physics.cpp` to numerical methods (a speed-dependent taper curve doesn't have a clean closed-form integral).
-- [ ] Performance: fix `segment_options()`'s redundant recomputation across `ending_battery`/`harvest` combinations that reach the same `(index, battery_charge)` state (known, deferred). Do this *after* the physics renovation above, not before — optimizing formulas that are about to be rewritten is wasted effort.
+- [x] Performance: fix `segment_options()`'s redundant recomputation across `ending_battery`/`harvest` combinations that reach the same `(index, battery_charge)` state (known, deferred). Do this *after* the physics renovation above, not before — optimizing formulas that are about to be rewritten is wasted effort. This is fixed by caching pre-computed option tables as a lookup table.
 
 ## MVP (ie the core prototype after 9 days)
 a CLI that takes no arguments (or minimal ones), builds the Silverstone segment list internally, runs the DP(or whatever optimization algorithm I make) for qualifying mode and race mode, and prints something like a per-segment table showing battery level and deployment decision, the change in delta when we decide to deploy/recharge at each segment, and total lap time — ideally alongside a naive baseline that we can compare to (e.g. "always deploy fully when possible", "never deploys", or "deploys the same amount in every segment") so the DP's improvement is visible and quantifiable, and we can compare the overall improvement in delta as well. More specific definitions and specifications can be found in PROJECT_SPEC.md.
@@ -138,61 +138,63 @@ Bug fixes:
 - [x] Use clang-tidy improve coding quality
 - [x] Optimizer: Fix the bug that if I enter 0 starting battery and 0 ending battery, the output of laptime is inf (Found the bug, starting with 0 battery means no deployment in Hamilton Straight, can't reach the target speed of Turn 1 with just ICE. Haven't implemented the feature where the speed reaching fast corner's apex speed doesn't need to be exactly the speed. Therefore not fixable for now)
 - [x] Physics: Fix the bug that the time function doesn't give a reasonable output when the difference in speed is small
-- [ ] Performance: fix `segment_options()`'s redundant recomputation across `ending_battery`/`harvest` combinations that reach the same `(index, battery_charge)` state (known, deferred). (This will be fixed when the feature of each segment option table gets cached is implemented, which would be a bigger performance improvement than this)
+- [x] Performance: fix `segment_options()`'s redundant recomputation across `ending_battery`/`harvest` combinations that reach the same `(index, battery_charge)` state (known, deferred). (This will be fixed when the feature of each segment option table gets cached is implemented, which would be a bigger performance improvement than this)
 
 Limitation:
 - Fastcorners like T1 and T2 should have apex_min_speed as the maximum speed they could achieve, the optional table should provide options where more recharging can be done to go through the corner in a lower speed than apex_min_speed. Results in a increase in delta but harvest more energy
 - SlowCorners still rely on a fixed entry speed to calculate breaking energy. In the future, where to break to harvest the best can be calculated by the optimizer.
 - In best_option_for_bucket(), the harvest-phase will use the Straight Mode from the start of the harvesting all the way till the end. Even if we cross the part where SM should close
 
-
 ## Third Prototype: (Deadline: 14th of August)
-What the third prototype should look like:
+What it should look like:
 - Performance optimization
+- Accurate track data that is very generalized. I.e. Can easily import multiple different tracks
+- Visualized Speed Trace. Plotted speed over distance, deployment over distance etc
+- Increased physics inputs. E.g. modifiable weight, tire grip etc
 - Refined physics models, turbulant air awareness, which impacts laptime and downforce
-- Add a new category for Segmemment to represent corners like T5, T17 and T18. 
-- Multiple car simulation (Complete Race Mode)
+- Add a new category for Segment to represent corners like T5, T17 and T18. 
 - Bring in MOM detection point
-- Attacking mode
-- Defending mode
-- Make the data about silverstone circuit into a seperate file, so that in the future where if we have the same structure of track data from other circuit, we can easily integrate it into our optimizer.
-- With Slow corners, we have a baseline of the fastest time to get through the corners (referenced in qualifying), but it can be very damaging to the tires. So we can look at telementry and onboards to figure out how much drivers have slown down to manage tired and benefit in the long run. 
 
-[ ] Performance
+[x] Performance
 - [x] Computing each Segment's option tables once and cache it. Then during DP it wouldn't need to compute them anymore. 
 - [x] Install Google Benchmark
-- [ ] Multithreading, threadpool (Instead of using mutex to write into the same memory space. Since The option table lookup table has a separate cell for each segment. Each thread could handle one segment by itself without worrying about writing into the same memory at all. Which can be a better multithreading implementation, disjoint memory regions > mutex)
 - [x] Go through track models and minimize unnecessary memory copies
 - [x] After installing Google Benchmark. Re-run the old no cache dp algorithm and compare to the new cached dp algorithm
+
+[ ] Track model
+- [ ] Use curvature-based track layouts. Using real (x,y) position telemetry through FastF1. 
+- [ ] Curvature can derive speed limits.
+
 
 [ ] Refined Physics
 - [ ] Add a parameter to drag_coeff() that tells the time difference of the car infront, this should determine the drag and also affect downforce
 - [ ] A function should return how much will the laptime get affected depending on how close we are to the car in front. This can change the time through a slow corner by a percentage, reduce the exit speed and apex min speed through a fast corner. etc
-- [ ] 
-
-[ ] Car model
-- [ ] Variable fuel load. With qualifying you would start off with 2 laps of fuel. With race you would start off with more. 
+- [ ] Research about Vehicle Dynamics. Then update this part of the progress log with things I can implement (E.g. tire grip, fuel load weight)
 
 [ ] Optimizer
 - [ ] Slow corners: The breaking distance, and entry speed can vary depending on the recharging needs
 - [ ] Fast corners: We have apex_min_speed as a cap to the max speed we can go through. We can try a number of different speeds 
 - [ ] Straight: the deployment doesn't have to hard code as 350kW from MGU-K. We can try deploy in different amount, like step_size in the exits of fast corner. We also doesn't have to keep it constant. Could deploy max for 100m, then 200kW for another 50. Then 0, then recharge etc.
 
+
+
+## Fourth Prototype: (Deadline: 21st of August)
+What the third prototype should look like:
+- Multiple car simulation (Complete Race Mode)
+- Attacking mode
+- Defending mode
+- Multithreading (Maybe)
+- Make the data about silverstone circuit into a seperate file, so that in the future where if we have the same structure of track data from other circuit, we can easily integrate it into our optimizer.
+- With Slow corners, we have a baseline of the fastest time to get through the corners (referenced in qualifying), but it can be very damaging to the tires. So we can look at telementry and onboards to figure out how much drivers have slown down to manage tired and benefit in the long run. 
+
+[ ] Performance
+- [ ] Multithreading, threadpool (Instead of using mutex to write into the same memory space. Since The option table lookup table has a separate cell for each segment. Each thread could handle one segment by itself without worrying about writing into the same memory at all. Which can be a better multithreading implementation, disjoint memory regions > mutex)
+
 [ ] Race Mode
 - [ ] This might be a bigger DP choice over multiple laps over the small DP algorithm.
 - [ ] Input Parameters can be: Aiming to gain X seconds over Y laps. With a starting battery of A and resulting battery of B. 
 
-
-
-
-
-
-
-
-
-
-
-
+Limitations: 
 - [ ] MOM detection point at the end of T17. Probably not something to implement in track model but be aware
 - [ ] Be aware that Hamilton Straight starts 50m before the S/F line of the next lap. There is 50m more for the car to travel after finishing the last corner (T18) 
 - [ ] When deploying energy on the straight, change from a fixed max deployment of 350kW from MGU-K, to trying different values of deployment, for now it can be a fixed step-size of 25kW or 50kW (After the optimization of caching segment tables is done, this adds a lot of computation power)
