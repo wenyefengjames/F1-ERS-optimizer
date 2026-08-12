@@ -161,23 +161,20 @@ What it should look like:
 - [x] Go through track models and minimize unnecessary memory copies
 - [x] After installing Google Benchmark. Re-run the old no cache dp algorithm and compare to the new cached dp algorithm
 
+[ ] Physics needed
+- [ ] Model for tire grip
+- [ ] Model for downforce of the car with respect to speed
+
+[ ] Track model
+- [ ] Pull Antonelli's lap position data using FastF1
+- [ ] Compute curvature and max speed due to grip
+- [ ] Categorize these data points back into the existing track segments (This is not the full version I would want, but for now it will work)
+- [ ] Full version: Derive Segment boundaries automatically from the curvatures. 
+
 [ ] Optimizer
 - [ ] Slow corners: The breaking distance, and entry speed can vary
 - [ ] Fast corners: We have apex_min_speed as a cap to the max speed we can go through. We can try a number of different speeds 
 - [ ] Straight: the deployment doesn't have to hard code as 350kW from MGU-K. We can try deploy in different amount, like step_size in the exits of fast corner. We also doesn't have to keep it constant. Could deploy max for 100m, then 200kW for another 50. Then 0, then recharge etc.
-
-[ ] Track model
-- [ ] Use curvature-based track layouts. Using real (x,y) position telemetry through FastF1. 
-- [ ] Curvature can derive speed limits.
-
-
-[ ] Refined Physics
-- [ ] Add a parameter to drag_coeff() that tells the time difference of the car infront, this should determine the drag and also affect downforce
-- [ ] A function should return how much will the laptime get affected depending on how close we are to the car in front. This can change the time through a slow corner by a percentage, reduce the exit speed and apex min speed through a fast corner. etc
-- [ ] Research about Vehicle Dynamics. Then update this part of the progress log with things I can implement (E.g. tire grip, fuel load weight)
-
-
-
 
 
 ## Fourth Prototype: (Deadline: 21st of August)
@@ -195,6 +192,11 @@ What the third prototype should look like:
 [ ] Race Mode
 - [ ] This might be a bigger DP choice over multiple laps over the small DP algorithm.
 - [ ] Input Parameters can be: Aiming to gain X seconds over Y laps. With a starting battery of A and resulting battery of B. 
+
+[ ] Refined Physics
+- [ ] Add a parameter to drag_coeff() that tells the time difference of the car infront, this should determine the drag and also affect downforce
+- [ ] A function should return how much will the laptime get affected depending on how close we are to the car in front. This can change the time through a slow corner by a percentage, reduce the exit speed and apex min speed through a fast corner. etc
+- [ ] Research about Vehicle Dynamics. Then update this part of the progress log with things I can implement (E.g. tire grip, fuel load weight)
 
 Limitations: 
 - [ ] MOM detection point at the end of T17. Probably not something to implement in track model but be aware

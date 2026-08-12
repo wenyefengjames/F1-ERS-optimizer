@@ -75,3 +75,38 @@ classified, not a state the physics forbids.
 
 ## Making the calculation of drag coefficient a seperate function
 This decision was made to allow future drag calculation to be easily integrated with more complexity. E.g. The function can bring in more parameters to consider like the distance that is trailing the car ahead, it will decrease the drag. This can be calculated seperately without affecting the functions that considers drag. Making the code more modular and maintainable. 
+
+## Replacing manual track classification with a quasi-steady-state (QSS) speed profile
+
+### Motivation
+This decision was made because the original track model relied on manually classifying each segment as a Straight, FastCorner, or SlowCorner, with apex/entry/exit speeds estimated by eye from a YouTube onboard lap. This had two problems: the speed values were unverified guesses rather than grounded in real track geometry, and every new circuit would require repeating the same manual, error-prone process from scratch.
+
+This direction came from a conversation with the Applied Racing Dynamics (ARD) team, who described how real lap-time simulation is built from fine-grained curvature data rather than hand-picked segments — and who reasonably questioned why my speed values weren't grounded in anything measurable.
+
+### What changed
+Track geometry now comes from real position telemetry (`X`, `Y`, `Distance`) pulled via FastF1 for the actual 2026 British Grand Prix. Curvature at each point is derived from this position data using a discrete three-point curvature estimate — this derivation is my own, not something FastF1 provides.
+
+From curvature, I compute a quasi-steady-state (QSS) speed profile:
+- A grip-limited speed bound at every point via the friction-circle
+  approximation, `v_limit = sqrt(mu * g / kappa)`.
+- A forward pass enforcing the car's maximum acceleration, capped at `v_limit`.
+- A backward pass enforcing maximum braking deceleration, also capped at
+  `v_limit`.
+- The pointwise minimum of both passes gives the achievable baseline speed
+  profile for the lap.
+
+This is a standard technique in lap-time simulation — it does not require full nonlinear optimal control to compute, only geometry and the car's straight-line acceleration/braking limits, which I already had from the energy-deployment physics.
+
+### Why this is an improvement, specifically
+- **Correctness is now checkable against ground truth**: 
+  the QSS profile can be plotted directly against FastF1's real recorded speed trace for the same lap, giving a genuine validation metric (e.g. RMS speed error) rather than relying on estimates with no way to confirm accuracy.
+- **Segment classification becomes derived, not manual**:
+  braking zones, straights, and corner apexes now   fall out of the profile's shape automatically (decreasing sections are braking zones, local minima are apexes) rather than being assigned by eye.
+- **Generalizes to any circuit with available telemetry**: 
+  adding a new track no longer requires manually re-deriving segment data — only pulling its telemetry and re-running the same curvature/QSS pipeline.
+
+### What did not change
+The DP optimizer, battery-state model, and energy-deployment physics are
+unaffected — QSS replaces how segment reference values (apex speed, entry/exit
+speed, segment boundaries) are generated, not how they're consumed. The
+straight/slow-corner/fast-corner option-generator interfaces remain the same.
