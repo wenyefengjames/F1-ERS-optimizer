@@ -1,13 +1,20 @@
+# Build outputs (CMake build directories)
 build/
+build-asan/
+build-release/
+
+# Compiler/linker artifacts, in case any ever land outside a build/ dir
 *.exe
 *.obj
 *.ilk
 *.pdb
 
-build-asan/
+# Python
+__pycache__/
+cache/
 
-*.docx
-
-build-release/
-
+# Tooling
 .claude/
+
+# Misc
+*.docx
