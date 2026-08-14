@@ -22,6 +22,7 @@ add_library(ERSCore
     src/track-model/fast-corner.cpp
     src/track-model/slow-corner.cpp
     src/track-model/straight.cpp
+    src/track-model/track-generation.cpp
     src/battery.cpp
     src/car.cpp
     src/optimizer.cpp

@@ -161,13 +161,17 @@ What it should look like:
 - [x] Go through track models and minimize unnecessary memory copies
 - [x] After installing Google Benchmark. Re-run the old no cache dp algorithm and compare to the new cached dp algorithm
 
-[ ] Physics needed
-- [ ] Model for tire grip
-- [ ] Model for downforce of the car with respect to speed
+[x] Physics needed
+- [x] Model for tire grip (Very simple version)
+- [x] Model for downforce of the car with respect to speed
 
 [ ] Track model
-- [ ] Pull Antonelli's lap position data using FastF1
-- [ ] Compute curvature and max speed due to grip
+- [x] Pull Antonelli's lap position data using FastF1
+- [x] Save the track data as CSV file
+- [x] Read from CSV file to extract data points
+- [x] Compute curvature and max speed due to grip
+- [ ] Compute the QSS of the track, and automatically categorize the track segments
+- [ ] Change Track.cpp to use track-generation to produce useable track segments
 - [ ] Categorize these data points back into the existing track segments (This is not the full version I would want, but for now it will work)
 - [ ] Full version: Derive Segment boundaries automatically from the curvatures. 
 
