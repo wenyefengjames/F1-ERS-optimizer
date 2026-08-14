@@ -237,10 +237,16 @@ namespace physics {
     // The current implementation doesn't take into the account of any parameter apart from speed
     // TO DO, Will be improved in the future
     double downforce(double speed_kmh, bool sm_on, double delta){
-        return downforce_coeff(sm_on, delta) * speed_kmh / 3.6;
+        if(speed_kmh < 0) return -1;
+
+        speed_kmh = speed_kmh / 3.6;
+
+        return downforce_coeff(sm_on, delta) * speed_kmh * speed_kmh;
     }
 
     double downforce_coeff(bool sm_on, double delta){
+        if(delta < 0) return -1;
+
         return 0.5 * AIR_DENSITY * FRONTAL_AREA * DOWNFORCE_COEFF;
     }
 
