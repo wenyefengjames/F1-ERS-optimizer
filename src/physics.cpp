@@ -76,7 +76,6 @@ namespace physics {
         return x;
     }
 
-    // TO TEST
     std::optional<TimeEnergyResult> time_to_reach_speed_over_distance(double initial_speed_kmh, double final_speed_kmh, double distance_m, bool mom, bool sm_on){
         if(initial_speed_kmh <= 0 || final_speed_kmh <= 0 || distance_m <= 0){
             return std::nullopt;
@@ -233,6 +232,16 @@ namespace physics {
         static const double without_sm = 0.5 * AIR_DENSITY * FRONTAL_AREA * CM_DRAG_COEFF;
         if(sm_on) return with_sm;
         else return without_sm;
+    }
+
+    // The current implementation doesn't take into the account of any parameter apart from speed
+    // TO DO, Will be improved in the future
+    double downforce(double speed_kmh, bool sm_on, double delta){
+        return downforce_coeff(sm_on, delta) * speed_kmh / 3.6;
+    }
+
+    double downforce_coeff(bool sm_on, double delta){
+        return 0.5 * AIR_DENSITY * FRONTAL_AREA * DOWNFORCE_COEFF;
     }
 
     // Overloaded function where SM is true 

@@ -30,6 +30,7 @@ namespace physics {
     inline constexpr double FRONTAL_AREA = 1.45;            // A, m^2
     inline constexpr double CM_DRAG_COEFF = 1.0;            // Cd, Corner mode, no unit
     inline constexpr double SM_DRAG_COEFF = 0.7;            // Cd, Stragiht mode, no unit
+    inline constexpr double DOWNFORCE_COEFF = 1.9;          // Cd, Stragiht mode, no unit
     inline constexpr double BATTERY_CAPACITY = 4.0;         // MJ
     inline constexpr double MGU_K = 350;                    // kW
     inline constexpr double ICE = 400;                      // kW
@@ -121,6 +122,19 @@ namespace physics {
     // Inputs: sm_on - whether the car has straight mode or not
     // Output: the drag coefficient, no unit (there is but i cba it doesn't matter)
     double drag_coeff(bool sm_on);
+
+    // Calculates the downforce on the car
+    // Inputs: speed_kmh - current speed, in km/h
+    //         sm_on - whether the straight mode is on or not
+    //         delta - how far ahead is the car in front
+    // Output: drag force, in N
+    double downforce(double speed_kmh, bool sm_on, double delta);
+
+    // Calculates the downforce coefficient of the car, independent of speed
+    // Inputs: sm_on - whether the car has straight mode or not
+    //         delta - how far ahead is the car in front
+    // Output: the downforce coefficient, no unit (there is but i cba it doesn't matter)
+    double downforce_coeff(bool sm_on, double delta);
 
     // For a given distance of deployment, estimate the amount of energy deployed
     // With consideration of tapering
