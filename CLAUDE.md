@@ -164,6 +164,7 @@ What it should look like:
 [x] Physics needed
 - [x] Model for tire grip (Very simple version)
 - [x] Model for downforce of the car with respect to speed
+- [ ] Using the tire grip to calculate breaking force, instead of using the 5.5g constant. Apply this in other places that uses braking force
 
 [ ] Track model
 - [x] Pull Antonelli's lap position data using FastF1
