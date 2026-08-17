@@ -11,6 +11,13 @@ lap = session.laps.pick_drivers("ANT").pick_fastest()
 
 telemetry  = lap.get_telemetry()
 
+# FastF1's X/Y position channels aren't in meters -- empirically measured
+# (via total lap distance and |dr/ds| checks) at ~10x real-world scale,
+# likely decimeters. Distance is unaffected
+POSITION_SCALE = 10
+telemetry['X'] = telemetry['X'] / POSITION_SCALE
+telemetry['Y'] = telemetry['Y'] / POSITION_SCALE
+
 ant_track_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data', 'track-data', 'silverstone_antonelli_quali.csv')
 telemetry[['Distance', 'X', 'Y']].to_csv(ant_track_data_dir, index=False)
 

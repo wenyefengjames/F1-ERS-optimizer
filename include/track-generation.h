@@ -9,8 +9,13 @@ struct TrackDataPoint{
 };
 
 namespace track_gen{
-    inline constexpr std::string TRACK_CSV_FOLDER = "data/track-data/";
+    inline const std::string TRACK_CSV_FOLDER = "data/track-data/";
 
     // TO DO
     const std::vector<double> qss(const std::string& file_name);
+
+    // Testing purpose only, shouldn't exist here
+    std::vector<TrackDataPoint> read_csv(const std::string& file_path);
+    const std::vector<double> compute_curvature(const std::vector<TrackDataPoint>& track_data);
+    const std::vector<double> compute_vmax(const std::vector<double>& curvature);
 }
