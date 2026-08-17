@@ -21,5 +21,5 @@ telemetry['Y'] = telemetry['Y'] / POSITION_SCALE
 ant_track_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data', 'track-data', 'silverstone_antonelli_quali.csv')
 telemetry[['Distance', 'X', 'Y']].to_csv(ant_track_data_dir, index=False)
 
-
-print(telemetry[['Time', 'Distance', 'X', 'Y']])
+ant_track_data_dir_with_speed = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data', 'track-data', 'silverstone_antonelli_quali_with_speed.csv')
+telemetry[['Distance', 'Speed']].to_csv(ant_track_data_dir_with_speed, index=False)

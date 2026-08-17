@@ -159,8 +159,8 @@ namespace track_gen{
         double forward_v = vmax[min_index];
         double backward_v = vmax[min_index];
 
-        std::cout << "Min speed: " << forward_v * 3.6 << '\t'; 
-        std::cout << "Min index: " << min_index << '\n'; 
+        // std::cout << "Min speed: " << forward_v * 3.6 << '\t'; 
+        // std::cout << "Min index: " << min_index << '\n'; 
 
         forward_pass[min_index] = forward_v;
         backward_pass[min_index] = backward_v;
@@ -171,10 +171,10 @@ namespace track_gen{
         const double max_decel_pt2 = p::FRICTION_COEFF * p::downforce_coeff(false, 10.0) + p::drag_coeff(false);
         const double max_lat_pt = p::FRICTION_COEFF * p::GRAVITY;
 
-        std::cout << "max_acc_pt1: " << max_acc_pt1 << '\t'; 
-        std::cout << "max_acc_pt2: " << max_acc_pt2 << '\t'; 
-        std::cout << "max_decel_pt2: " << max_decel_pt2 << '\t'; 
-        std::cout << "max_lat_pt: " << max_lat_pt << '\n'; 
+        // std::cout << "max_acc_pt1: " << max_acc_pt1 << '\t'; 
+        // std::cout << "max_acc_pt2: " << max_acc_pt2 << '\t'; 
+        // std::cout << "max_decel_pt2: " << max_decel_pt2 << '\t'; 
+        // std::cout << "max_lat_pt: " << max_lat_pt << '\n'; 
 
         // Because the distance at the end of the lap goes from 5800 to 0, 
         // I need to calculate it using positional data instead
@@ -205,7 +205,7 @@ namespace track_gen{
             double max_acc = max_acc_pt1 + max_acc_pt2 * forward_v2 / p::MASS_KG;
             double max_lat_forward = max_lat_pt + p::FRICTION_COEFF * p::downforce(forward_v * 3.6, false, 10.0) / p::MASS_KG;  
             double acc = max_acc * std::sqrt(std::max(0.0, 1.0 - (lat_forward / max_lat_forward)*(lat_forward / max_lat_forward)));
-            double max_engine_acc = (p::ICE + 100) * 1000 / (p::MASS_KG * forward_v) - p::drag(forward_v * 3.6, false) / p::MASS_KG;
+            double max_engine_acc = p::ICE * 1000 / (p::MASS_KG * forward_v) - p::drag(forward_v * 3.6, false) / p::MASS_KG;
             double min_acc = std::min(acc, max_engine_acc);
 
             forward_v = std::min(std::max(0.0, std::sqrt(forward_v2 + 2 * min_acc *  ds_forward)), vmax[forward_index]);
@@ -258,5 +258,24 @@ namespace track_gen{
         }
 
         return output;
+    }
+
+    void write_csv(){
+        auto results = qss("");
+
+        std::ofstream qss_file;
+        qss_file.open(TRACK_CSV_FOLDER + "qss_antonelli.csv");
+
+        if(!qss_file.is_open()){
+            throw std::runtime_error("Could not open track data file when writing");
+        }
+
+        qss_file << "Speed" << '\n';
+        for(const auto& i : results){
+            qss_file << i * 3.6 << '\n';
+        }
+
+        qss_file.close();
+
     }
 }

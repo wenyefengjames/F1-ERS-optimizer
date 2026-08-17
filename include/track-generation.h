@@ -13,6 +13,7 @@ namespace track_gen{
 
     // TO DO
     const std::vector<double> qss(const std::string& file_name);
+    void write_csv();
 
     // Testing purpose only, shouldn't exist here
     std::vector<TrackDataPoint> read_csv(const std::string& file_path);

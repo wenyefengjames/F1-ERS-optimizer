@@ -1,65 +1,36 @@
 # Project: F1 Battery Deployment Optimizer
 
 ## Goal
-A C++ project simulating and optimizing battery (MGU-K) deployment across a lap,
-targeting 2026 F1 regulations. Built to strengthen my CV for Red Bull (CFD Software
-Engineering) and Alpine (Software Engineering placement) applications. We are only focusing on the silverstone race track for this software for now. If there is time more tracks can be added in the future. Isn't a priority for now
+A C++ project simulating and optimizing battery (MGU-K) deployment across a lap, targeting 2026 F1 regulations. We are only focusing on the silverstone race track for this software for now. If there is time more tracks can be added in the future. Isn't a priority for now
 
 ## Domain context — 2026 F1 power unit regulations
 - Battery: has a maximum charge of 4MJ usable energy cap at any time. No MGU-H — MGU-K only (simpler single source/sink energy balance vs. the old car).
 - MGU-K: Maximum rate of deploy and recover capped at 350kW.
 - Deployment: up to 4MJ bursts per deployment, multiple deployments per lap allowed if battery supports it (old rules allowed one deployment window/lap). Deployment tapers above 290km/h, hits zero at 355km/h (leading car). A following car within 1s gets MOM, which allows full 350kW up to 337km/h. Note: there are no publicly confirmed taper curve shape, so we assume as linear interpolation. 
-- Harvest per lap (Silverstone, 2026 British GP): regulated per-session cap,
-  not a physical estimate — qualifying ≈ 6.5MJ, race ≈ 8.0MJ. Qualifying is the
-  circuit-sensitive number (FIA cuts it per-event when a track doesn't offer
-  enough natural braking energy); race stays close to a flat ~8MJ baseline
-  across circuits. Model these as two separate input parameters
-  (qualifying_harvest_cap_MJ / race_harvest_cap_MJ), not one shared constant. When the trailing car gets MOM, they are allowed 0.5MJ more harvest in a lap than the car in front.
-- Harvest methods: braking, partial throttle, coasting, "superclipping"
-  (diverting engine power to battery at full throttle). Cap: 350kW as of the
-  Miami GP mid-season update (was 250kW at season start).
+- Harvest per lap (Silverstone, 2026 British GP): regulated per-session cap, not a physical estimate — qualifying ≈ 6.5MJ, race ≈ 8.0MJ. Qualifying is the circuit-sensitive number (FIA cuts it per-event when a track doesn't offer enough natural braking energy); race stays close to a flat ~8MJ baseline across circuits. Model these as two separate input parameters (qualifying_harvest_cap_MJ / race_harvest_cap_MJ), not one shared constant. When the trailing car gets MOM, they are allowed 0.5MJ more harvest in a lap than the car in front.
+- Harvest methods: braking, partial throttle, coasting, "superclipping" (diverting engine power to battery at full throttle). Cap: 350kW as of the Miami GP mid-season update (was 250kW at season start).
 - 1hp = 0.7457kW
 
 
 ## Target circuit: Silverstone
-Chosen deliberately — few heavy braking zones (long, fast, flowing corners like
-Maggotts-Becketts-Chapel) means harvesting opportunities are scarce, making
-energy management a genuinely tight, interesting problem rather than a simple
-"brake a lot, deploy on straights" model.
+Chosen deliberately — few heavy braking zones (long, fast, flowing corners like Maggotts-Becketts-Chapel) means harvesting opportunities are scarce, making energy management a genuinely tight, interesting problem rather than a simple "brake a lot, deploy on straights" model.
 
 ## Core approach
-- Lap modeled as a sequence of discrete track segments (straight/slow corner/fast corner),
-  each with a distance, time. Corners have apex-speed, exit-speed, throttle attibutes to estimate laptime and energy demand/harvest potential.
+- Lap modeled as a sequence of discrete track segments (straight/slow corner/fast corner), each with a distance, time. Corners have apex-speed, exit-speed, throttle attibutes to estimate laptime and energy demand/harvest potential.
 - Battery state modeled with the real constraints above.
-- Car and Battery are split into two classes: `Battery` owns charge state, the
-  per-lap harvest limit, and the race/qualifying mode switch; `Car` owns
-  physical constants (ICE/MGU-K power, mass) and the deployment physics
-  (taper curve, kinetic-energy↔speed conversion), and holds a `Battery` as a
-  member.
-- Optimizer: dynamic programming over discretized battery states (~0.1MJ steps)
-  across segments — backward induction to find minimum lap time per
-  (segment, battery-level) pair.
+- Car and Battery are split into two classes: `Battery` owns charge state, the per-lap harvest limit, and the race/qualifying mode switch; `Car` owns physical constants (ICE/MGU-K power, mass) and the deployment physics (taper curve, kinetic-energy↔speed conversion), and holds a `Battery` as a member.
+- Optimizer: dynamic programming over discretized battery states (~0.1MJ steps) across segments — backward induction to find minimum lap time per (segment, battery-level) pair.
 - Three modes, same DP core with different constraints:
   - Qualifying: single-lap horizon, no carry-over constraint.
   - Race: multi-lap, battery state carries over, per-lap harvest cap enforced.
-  - Attack/defend: takes a gap-to-car time trace as input; decides when to
-    trigger MGU-K Override (attack) or prioritize deployment before likely
-    attack zones (defend).
-- Real lap data (speed/throttle/brake traces) via FastF1 (Python) for the actual
-  2026 British GP at Silverstone, used to derive segment energy potential —
-  battery-specific numbers are estimated/derived, not proprietary team data
-  (which isn't public).
+  - Attack/defend: takes a gap-to-car time trace as input; decides when to trigger MGU-K Override (attack) or prioritize deployment before likely attack zones (defend).
+- Real lap data (speed/throttle/brake traces) via FastF1 (Python) for the actual2026 British GP at Silverstone, used to derive segment energy potential — battery-specific numbers are estimated/derived, not proprietary team data (which isn't public).
 
 ## Timeline
 - **Days 1-9 (current phase): core working prototype.** DONE
-  Segment + battery data model, DP optimizer (race + qualifying modes), basic
-  CLI to run a lap and compare against a naive baseline. This is what goes in
-  my CV/application — needs to be genuinely working, not just scaffolding.
+Segment + battery data model, DP optimizer (race + qualifying modes), basic CLI to run a lap and compare against a naive baseline.
 - **Following 1-2 months: full project.**
-  Attack/defend mode, Python data pipeline (FastF1) integration, Google Test/
-  Catch2 unit tests, GitHub Actions CI (build+test+clang-tidy+sanitizers),
-  REST API wrapper, Docker, and if time allows: visualization (Qt or simple
-  chart via Python bindings) and a Kubernetes manifest.
+Attack/defend mode, Python data pipeline (FastF1) integration, Google Test/ Catch2 unit tests, GitHub Actions CI (build+test+clang-tidy+sanitizers), REST API wrapper, Docker, and if time allows: visualization (Qt or simple chart via Python bindings) and a Kubernetes manifest.
 
 ## Stack (update as decisions are made)
 - Build: CMake + Ninja
@@ -70,18 +41,15 @@ energy management a genuinely tight, interesting problem rather than a simple
 - Testing: Google Test
 - Debugging: Clang-tidy, Sanitizer
 - Performance Benchmarking: Google Benchmark
-- Later: FastF1 (Python) for data, pybind11 for C++/Python bridge (tentative),
-  GitHub Actions for CI, Docker
+- Later: FastF1 (Python) for data, pybind11 for C++/Python bridge (tentative), GitHub Actions for CI, Docker
 
 ## Working style — IMPORTANT
 I am implementing all code myself to build real understanding for interviews.
 Act as a senior engineer doing code review, not as an implementer:
 - Point out design issues, missing edge cases, bugs, and non-idiomatic C++.
 - Ask me to explain my reasoning on non-obvious decisions.
-- Suggest better approaches, but do NOT write or rewrite implementation code
-  for me unless I explicitly ask you to write something.
-- If I ask "how would you approach X," explain the approach conceptually first
-  — let me write the implementation myself.
+- Suggest better approaches, but do NOT write or rewrite implementation code for me unless I explicitly ask you to write something.
+- If I ask "how would you approach X," explain the approach conceptually first — let me write the implementation myself.
 
 ## Progress log
 (Keep this updated — what's actually built, not just planned)
