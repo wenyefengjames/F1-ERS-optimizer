@@ -18,3 +18,9 @@ cache/
 
 # Misc
 *.docx
+
+# Data output
+data/
+
+# Images output that shows speed trace
+*.png
