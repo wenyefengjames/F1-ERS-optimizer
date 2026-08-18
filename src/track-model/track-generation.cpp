@@ -11,10 +11,34 @@ namespace p = physics;
 
 namespace track_gen{
 
+    // Using the moving average window method to smooth data points
+    // Input: curvatures, 
+    // Output: A vector of smoothes TrackDataPoint
+    const std::vector<double> move_average_smoothing(const std::vector<double>& curvature){
+        std::vector<double> output;
+        size_t size = curvature.size();
+        output.resize(size);
+
+
+        for(size_t i = 0; i < size; i++){
+            double sum = 0;
+
+            for(size_t j = 0; j < MOVING_AVERAGE_WINDOW_SIZE; j++){
+                size_t index = (i + j + size - MOVING_AVERAGE_WINDOW_SIZE / 2) % size;
+
+                sum += curvature[index];
+            }
+
+            output[i] = sum / static_cast<double>(MOVING_AVERAGE_WINDOW_SIZE);
+        }
+
+        return output;
+    }
+
     // Reads the track data pulled from FastF1, and translate it into usable data
     // Input: file_path, the file location of the track data within /data/track-data/ folder
     // Output: A vector of TrackDataPoint, each containing distance, x position and y position
-    std::vector<TrackDataPoint> read_csv(const std::string& file_path){
+    const std::vector<TrackDataPoint> read_csv(const std::string& file_path){
         std::ifstream file(TRACK_CSV_FOLDER + file_path);
         if(!file.is_open()){
             throw std::runtime_error("Could not open track data file: " + file_path);
@@ -45,6 +69,7 @@ namespace track_gen{
     }
 
     // Computes the curvature of each data point of the track
+    // Need to feed on the results of read_csv()
     // Input: track_data, A vector of TrackDataPoint
     // Output: A vector of curvature, corresponding to each data point of the track
     const std::vector<double> compute_curvature(const std::vector<TrackDataPoint>& track_data){
@@ -119,6 +144,7 @@ namespace track_gen{
     }
 
     // Computes the maximum velocities of each data point of the track, in m/s
+    // Need to feed on the results of compute_curvature()
     // Input: curvature, A vector of curvature values of the track
     // Output: A vector of maximum speed at each curvature
     const std::vector<double> compute_vmax(const std::vector<double>& curvature){
@@ -150,7 +176,7 @@ namespace track_gen{
         // Hard coding this value for now because there are no other options
         const std::vector<TrackDataPoint> track_data = read_csv("silverstone_antonelli_quali.csv");
         const std::vector<double> curvature = compute_curvature(track_data);
-        const std::vector<double> vmax = compute_vmax(curvature);
+        const std::vector<double> vmax = compute_vmax(move_average_smoothing(curvature));
 
         std::vector<double> output;
         std::vector<double> forward_pass;

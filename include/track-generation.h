@@ -10,6 +10,7 @@ struct TrackDataPoint{
 
 namespace track_gen{
     inline const std::string TRACK_CSV_FOLDER = "data/track-data/";
+    inline constexpr int MOVING_AVERAGE_WINDOW_SIZE = 7;
 
     // TO DO
     // Generate a QSS simulation for the given track
