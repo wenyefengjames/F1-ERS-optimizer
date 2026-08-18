@@ -11,6 +11,9 @@ namespace p = physics;
 
 namespace track_gen{
 
+    // Reads the track data pulled from FastF1, and translate it into usable data
+    // Input: file_path, the file location of the track data within /data/track-data/ folder
+    // Output: A vector of TrackDataPoint, each containing distance, x position and y position
     std::vector<TrackDataPoint> read_csv(const std::string& file_path){
         std::ifstream file(TRACK_CSV_FOLDER + file_path);
         if(!file.is_open()){
@@ -41,6 +44,9 @@ namespace track_gen{
         return points;
     }
 
+    // Computes the curvature of each data point of the track
+    // Input: track_data, A vector of TrackDataPoint
+    // Output: A vector of curvature, corresponding to each data point of the track
     const std::vector<double> compute_curvature(const std::vector<TrackDataPoint>& track_data){
         std::vector<double> curvature;
         curvature.resize(track_data.size());
@@ -112,7 +118,9 @@ namespace track_gen{
         return curvature;
     }
 
-    // Produces a vector of velocities in m/s
+    // Computes the maximum velocities of each data point of the track, in m/s
+    // Input: curvature, A vector of curvature values of the track
+    // Output: A vector of maximum speed at each curvature
     const std::vector<double> compute_vmax(const std::vector<double>& curvature){
         const double bound = p::FRICTION_COEFF * p::downforce_coeff(false, 10.0) / p::MASS_KG;
         std::vector<double> vmax;
@@ -260,8 +268,11 @@ namespace track_gen{
         return output;
     }
 
-    void write_csv(){
+    void write_csv(const std::string& file_name){
         auto results = qss("");
+        const std::vector<TrackDataPoint> track_data = read_csv("silverstone_antonelli_quali.csv");
+        const std::vector<double> curvature = compute_curvature(track_data);
+        const std::vector<double> vmax = compute_vmax(curvature);
 
         std::ofstream qss_file;
         qss_file.open(TRACK_CSV_FOLDER + "qss_antonelli.csv");
@@ -270,9 +281,12 @@ namespace track_gen{
             throw std::runtime_error("Could not open track data file when writing");
         }
 
-        qss_file << "Speed" << '\n';
-        for(const auto& i : results){
-            qss_file << i * 3.6 << '\n';
+        qss_file << "QSS Speed,Distance,Curvature,Max Velocity" << '\n';
+        for(size_t i = 0; i < track_data.size(); i++){
+            qss_file << results[i] * 3.6 << ',';
+            qss_file << track_data[i].distance_m << ',';
+            qss_file << curvature[i] << ',';
+            qss_file << vmax[i] * 3.6 << '\n';
         }
 
         qss_file.close();
