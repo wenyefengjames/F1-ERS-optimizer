@@ -30,13 +30,13 @@ namespace physics {
     inline constexpr double FRONTAL_AREA = 1.45;            // A, m^2
     inline constexpr double CM_DRAG_COEFF = 1.0;            // Cd, Corner mode, no unit
     inline constexpr double SM_DRAG_COEFF = 0.7;            // Cd, Stragiht mode, no unit
-    inline constexpr double DOWNFORCE_COEFF = 1.7;          // Cd, Stragiht mode, no unit
+    inline constexpr double DOWNFORCE_COEFF = 4.35;         // Cl, Corner mode, no unit
     inline constexpr double BATTERY_CAPACITY = 4.0;         // MJ
     inline constexpr double MGU_K = 350;                    // kW
     inline constexpr double ICE = 400;                      // kW
     inline constexpr double BRAKING_DECEL = 5.5 * 9.8;      // m/s^-2, assuming that the braking force is 5.5g
     inline constexpr double DELTA_T = 0.01;                 // s, change in time for numerical approximation
-    inline constexpr double FRICTION_COEFF = 1.7;           // rho, for the soft tyres
+    inline constexpr double FRICTION_COEFF = 2.52;          // rho, for the soft tyres
     inline constexpr double GRAVITY = 9.81;                 // g, ms^-2
 
 
