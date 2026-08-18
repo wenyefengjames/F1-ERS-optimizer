@@ -1,3 +1,7 @@
+# This file is responsible for plotting the graph between QSS simulation, and Kimi's actual lap.
+# First, we need to run the function of 'write_csv()' from 'track-generation.cpp' to produce the values of 
+# the simulation results. Then running this file will give the plot of the most up to date result. 
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import os

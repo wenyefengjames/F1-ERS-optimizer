@@ -1,3 +1,6 @@
+# This file is responsible for pulling data from FastF1, then writing the data of Kimi's pole lap in 2026
+# British Grand Prix's qualifying session
+
 import fastf1
 import os
 cache_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'cache')

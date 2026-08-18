@@ -136,7 +136,10 @@ What it should look like:
 - [x] Save the track data as CSV file
 - [x] Read from CSV file to extract data points
 - [x] Compute curvature and max speed due to grip
-- [ ] Compute the QSS of the track, and automatically categorize the track segments
+- [x] Run simulation using QSS
+- [x] Plot a graph of simulation results compare to Kimi's actual speed
+- [ ] Smoothing data points on track to produce results that are more accurate, with less sharp peaks
+- [ ] Automatically categorize the track segments based on the curvatures
 - [ ] Change Track.cpp to use track-generation to produce useable track segments
 - [ ] Categorize these data points back into the existing track segments (This is not the full version I would want, but for now it will work)
 - [ ] Full version: Derive Segment boundaries automatically from the curvatures. 
