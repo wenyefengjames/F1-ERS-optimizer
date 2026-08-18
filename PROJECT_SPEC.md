@@ -50,28 +50,14 @@ Future ideas that can be implemented: (Recorded here just in case forget):
 
 ## Design decision: straight-mode vs corner-mode drag, and only 3 tapering lookup tables (not 4)
 
-Following on from the "straight line mode which reduces drag" idea above: the
-drag-involved physics formulas were all using one generic drag coefficient,
-not distinguishing straight-mode (low drag, DRS-open-equivalent) from
-corner-mode (higher drag). This matters specifically for MOM: reaching
-MOM's full-350kW threshold (337km/h) needs the lower straight-mode drag to
-be achievable at all within realistic power figures.
+Following on from the "straight line mode which reduces drag" idea above: the drag-involved physics formulas were all using one generic drag coefficient, not distinguishing straight-mode (low drag, DRS-open-equivalent) from corner-mode (higher drag). This matters specifically for MOM: reaching MOM's full-350kW threshold (337km/h) needs the lower straight-mode drag to be achievable at all within realistic power figures.
 
-Decision: build 3 tapering lookup tables, not the full 2x2 combination of
-{MOM, no-MOM} x {straight-mode, corner-mode}:
+Decision: build 3 tapering lookup tables, not the full 2x2 combination of {MOM, no-MOM} x {straight-mode, corner-mode}:
 - no-MOM + corner-mode
 - no-MOM + straight-mode
 - MOM + straight-mode
 
-Deliberately skipping MOM + corner-mode. This is **a design choice based on
-real circuit geometry, not a claim that it's physically impossible**: no
-real circuit has a corner long enough to sustain full-power acceleration up
-to 337km/h while still being classified as corner-mode. Any stretch of
-track long enough to do that would, by definition, be mapped as straight-mode
-instead — reducing drag and saving battery on long/near-straight sections is
-the entire point of straight-mode in the first place. So MOM+corner-mode is a
-combination that shouldn't come up given how the track itself gets
-classified, not a state the physics forbids.
+Deliberately skipping MOM + corner-mode. This is **a design choice based on real circuit geometry, not a claim that it's physically impossible**: no real circuit has a corner long enough to sustain full-power acceleration up to 337km/h while still being classified as corner-mode. Any stretch of track long enough to do that would, by definition, be mapped as straight-mode instead — reducing drag and saving battery on long/near-straight sections is the entire point of straight-mode in the first place. So MOM+corner-mode is a combination that shouldn't come up given how the track itself gets classified, not a state the physics forbids.
 
 ## Making the calculation of drag coefficient a seperate function
 This decision was made to allow future drag calculation to be easily integrated with more complexity. E.g. The function can bring in more parameters to consider like the distance that is trailing the car ahead, it will decrease the drag. This can be calculated seperately without affecting the functions that considers drag. Making the code more modular and maintainable. 
@@ -87,13 +73,10 @@ This direction came from a conversation with the Applied Racing Dynamics (ARD) t
 Track geometry now comes from real position telemetry (`X`, `Y`, `Distance`) pulled via FastF1 for the actual 2026 British Grand Prix. Curvature at each point is derived from this position data using a discrete three-point curvature estimate — this derivation is my own, not something FastF1 provides.
 
 From curvature, I compute a quasi-steady-state (QSS) speed profile:
-- A grip-limited speed bound at every point via the friction-circle
-  approximation, `v_limit = sqrt(mu * g / kappa)`.
+- A grip-limited speed bound at every point via the friction-circle approximation, `v_limit = sqrt(mu * g / kappa)`.
 - A forward pass enforcing the car's maximum acceleration, capped at `v_limit`.
-- A backward pass enforcing maximum braking deceleration, also capped at
-  `v_limit`.
-- The pointwise minimum of both passes gives the achievable baseline speed
-  profile for the lap.
+- A backward pass enforcing maximum braking deceleration, also capped at `v_limit`.
+- The pointwise minimum of both passes gives the achievable baseline speed profile for the lap.
 
 This is a standard technique in lap-time simulation — it does not require full nonlinear optimal control to compute, only geometry and the car's straight-line acceleration/braking limits, which I already had from the energy-deployment physics.
 
@@ -106,7 +89,27 @@ This is a standard technique in lap-time simulation — it does not require full
   adding a new track no longer requires manually re-deriving segment data — only pulling its telemetry and re-running the same curvature/QSS pipeline.
 
 ### What did not change
-The DP optimizer, battery-state model, and energy-deployment physics are
-unaffected — QSS replaces how segment reference values (apex speed, entry/exit
-speed, segment boundaries) are generated, not how they're consumed. The
-straight/slow-corner/fast-corner option-generator interfaces remain the same.
+The DP optimizer, battery-state model, and energy-deployment physics are unaffected — QSS replaces how segment reference values (apex speed, entry/exit speed, segment boundaries) are generated, not how they're consumed. The straight/slow-corner/fast-corner option-generator interfaces remain the same.
+
+
+## Picking values for tyre friction coefficient and downforce coefficient
+
+The QSS model initially used placeholder constants `FRICTION_COEFF = 1.7`and `DOWNFORCE_COEFF = 1.9`. Plotting the resulting speed profile against Antonelli's real 2026 British GP qualifying lap (pulled via FastF1) showed the simulation braking far harder than the real car at every corner — both slow and fast corners were affected, not just one class, which pointed at the grip model itself being under-calibrated rather than a track-geometry or curvature bug.
+
+To calibrate, I picked six corner apexes from the real telemetry and read off each one's real speed (FastF1's `Speed` channel) alongside the curvature already computed at that same point by the QSS pipeline's own `compute_curvature`. A seventh candidate, Turn 3, was excluded: the real lap's minimum-speed point there sits noticeably further down the track than the simulation's minimum-speed point, meaning the two weren't measuring the same physical location and would have contaminated the fit.
+
+Sector    Kimi's speed/kmh   simulation speed/kmh   curvature
+Turn 4          87                  59.7985         0.05208
+Copse           282                 156.259         0.0121939
+Turn 13         221                 94.209          0.027694
+Stowe           239                 107.454         0.0220607
+Turn 16         102                 83.8747         0.0340649
+Turn 17         130                 67.0154         0.0514673
+
+(Simulation speed isn't used in the calibration itself — it's included to show how far off the uncalibrated model was.) These six points were chosen specifically because they're apexes: the point of minimum speed through a real corner is where the driver is fully committed and lateral grip is maxed out, which is exactly the condition the QSS force-balance equation assumes — `v²k = µg + (µk_z/m)v²`, required lateral force equal to available lateral force.
+
+Treating `x = v²` and `y = v²k`, that equation is linear: `y = Bx + A`, with `B = µk_z/m` and `A = µg`. Fitting a least-squares line through the six `(x, y)` points and solving back for the two constants gave y-intercept as 37.0955, and gradient of 0.0105. Which results in `µ ≈ 3.78` and a downforce constant equivalent to `DOWNFORCE_COEFF ≈ 2.40`.
+
+I checked these against commonly-cited real-world F1 lateral-g and downforce figures, and there are no reliable sources for the 2026 regulations. We could deduce the figures through 2026 regulation aiming to cut downforce by roughly 25%-30% relative to 2022–2025-spec cars, but that would mean adding another layer of guesswork on top of an already-approximate source. Therefore, calibrating directly against this lap's own real telemetry is more directly grounded than adjusting a secondary-source figure for a spec with no public data yet, so I kept the fitted values rather than literature-adjusted ones.
+
+The fit itself is loose. After plotting the graph it results in a correlation of 0.7344, since a two-parameter fit over only six points can't fully capture real corner-to-corner variation in effective grip (tyre condition, driver commitment, aero effects the model doesn't capture). However, it's still a large improvement compared to the original placeholder constants, and is good enough for this project's purposes.

@@ -119,9 +119,6 @@ What it should look like:
 - Accurate track data that is very generalized. I.e. Can easily import multiple different tracks
 - Visualized Speed Trace. Plotted speed over distance, deployment over distance etc
 - Increased physics inputs. E.g. modifiable weight, tire grip etc
-- Refined physics models, turbulant air awareness, which impacts laptime and downforce
-- Add a new category for Segment to represent corners like T5, T17 and T18. 
-- Bring in MOM detection point
 
 [x] Performance
 - [x] Computing each Segment's option tables once and cache it. Then during DP it wouldn't need to compute them anymore. 
@@ -152,6 +149,9 @@ What it should look like:
 
 ## Fourth Prototype: (Deadline: 21st of August)
 What the third prototype should look like:
+- Refined physics models, turbulant air awareness, which impacts laptime and downforce
+- Add a new category for Segment to represent corners like T5, T17 and T18. 
+- Bring in MOM detection point
 - Multiple car simulation (Complete Race Mode)
 - Attacking mode
 - Defending mode
@@ -176,6 +176,6 @@ Limitations:
 - [ ] Be aware that Hamilton Straight starts 50m before the S/F line of the next lap. There is 50m more for the car to travel after finishing the last corner (T18) 
 - [ ] When deploying energy on the straight, change from a fixed max deployment of 350kW from MGU-K, to trying different values of deployment, for now it can be a fixed step-size of 25kW or 50kW (After the optimization of caching segment tables is done, this adds a lot of computation power)
 
-## Fourth Prototype:
+## Fifth Prototype:
 - Implement different models to represent the downforce and aero package of cars from different teams (Because, if its a slower car in front, we could deploy less to get pass, which saves battery)
 - Implement different tire models that gives different grip, which impacts laptime
