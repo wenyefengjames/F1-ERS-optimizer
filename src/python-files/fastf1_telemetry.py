@@ -1,5 +1,8 @@
-# This file is responsible for pulling data from FastF1, then writing the data of Kimi's pole lap in 2026
-# British Grand Prix's qualifying session
+# This file pulls Kimi's fastest lap telemetry from FastF1 for the 2026 British Grand
+# Prix qualifying session (used to warm the local FastF1 cache / for manual inspection).
+# Track geometry now comes from the TUMFTM Silverstone.csv data source instead, and
+# plot-data-test.py does its own independent live pull for the real-speed comparison
+# line, so this script no longer writes anything out.
 
 import fastf1
 import os
@@ -13,16 +16,3 @@ session.load()
 lap = session.laps.pick_drivers("ANT").pick_fastest()
 
 telemetry  = lap.get_telemetry()
-
-# FastF1's X/Y position channels aren't in meters -- empirically measured
-# (via total lap distance and |dr/ds| checks) at ~10x real-world scale,
-# likely decimeters. Distance is unaffected
-POSITION_SCALE = 10
-telemetry['X'] = telemetry['X'] / POSITION_SCALE
-telemetry['Y'] = telemetry['Y'] / POSITION_SCALE
-
-ant_track_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data', 'track-data', 'silverstone_antonelli_quali.csv')
-telemetry[['Distance', 'X', 'Y']].to_csv(ant_track_data_dir, index=False)
-
-ant_track_data_dir_with_speed = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data', 'track-data', 'silverstone_antonelli_quali_with_speed.csv')
-telemetry[['Distance', 'Speed']].to_csv(ant_track_data_dir_with_speed, index=False)
