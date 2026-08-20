@@ -1,13 +1,4 @@
-MVP Definition (ie the core prototype after 9 days):
-Track = list of segments
-Each segment can be in three category: straight, slow corner, and fast corner.
-Common attributes: length, name, type, time
-slow corner/fast corner unique attributes: minimum apex speed, exit speed, and throttle %
-Car has speed + battery state
-
-Final product:
-A CLI that takes no arguments (or minimal ones), builds the Silverstone segment list internally, runs the DP(or whatever optimization algorithm I make) for qualifying mode and race mode, and prints something like a per-segment table showing battery level and deployment decision, the change in delta when we decide to deploy/recharge at each segment, and total lap time — ideally alongside a naive baseline that we can compare to (e.g. "always deploy fully when possible", "never deploys", or "deploys the same amount in every segment") so the DP's improvement is visible and quantifiable, and we can compare the overall improvement in delta as well. 
-
+Important: This file is used to record on the justifications and reasoning on critical design choices. So the explanations are quite long to read. For overall project aim and progress, please look into CLAUDE.md
 
 1. Segment — the static track description
 This is pure data: what does this piece of track look like, physically? Fields like segment name/id, type (straight/corner/braking-zone), distance, and some representation of energy potential (however you choose to model it — could be a single "harvest potential" value, or separate demand/recovery values, that's your design decision). This layer knows nothing about strategy — it's just "here's what Silverstone looks like," fixed regardless of what car or driver runs it.
@@ -33,20 +24,6 @@ Definition of corners: places where the driver cannot keep at 100% throttle.
 
 Choices of how to harvest in corners: For now, we harvest everything in braking, no deployment needed because grip is the limiting factor. When lifting and coasting, all power from engine goes to harvesting. When partial throttle, the % of throttle not used from the engine will go to harvesting. However, that will be too complex for the prototype, so for now we won't record the throttle position. Instead, we use the difference between entry speed and apex minimum speed to calculate how much to slow down.
 
-
-Future ideas that can be implemented: (Recorded here just in case forget):
-- Giving battery deployment plan to best attack for a position
-- Giving battery deployment plan to defend for a position
-- Include tapering function, so far we still haven't considered that. And if we do, we would need to use numerical methods to estimate energy deployment instead of using physics formulas.
-- Multi-threading, or any performance improvement optimization techniques
-- Bring in read track data (Not sure what to use them for just yet)
-- Make the car model more realistic, bring in effects of tire wear, aerodynamics when trailing a car, straight line mode which reduces drag, engine RPM affects battery recharging, etc. (If thought of more write them here)
-- Maybe extend this to incorporate with C#, with a strategy software.
-- More accurate lap model. 
-- Use docker to make it deployable
-- A GUI for easy visualization
-- Allow simulation for other tracks, not just Silverstone (Maybe even predict pole lap speed for future races)
-- 
 
 ## Design decision: straight-mode vs corner-mode drag, and only 3 tapering lookup tables (not 4)
 
@@ -116,6 +93,31 @@ The fit itself is loose. After plotting the graph it results in a correlation of
 
 
 ## Curvature smoothing
-It used to be data points smoothing, on x and y positions. However it proven to be not useful, with window sizes of 3,5,7 tired. It gives very inconsistent curvatures computed. Curvature smoothing also removes the Maggetts and Becketts corners entirely, proving that the data points are under-sampled. Therefore moving towards a interpolating C2 cubic spline direction now. 
 
-Considering weighted smoothing spline. Because Turns like 3-5 are densely sampled with noise, so a smoothing spline works better than interpolating. But Maggetts and Becketts are under-sampled. Therefore a interpolating spline works better than smoothing spline. So if I use a weighted smoothing spline, where the weight is adjusted based on the density of points. It will work better. However, there are no existing libraries that I could use on weighted smoothing spline. Therefore, I will do the weighted smooth myself first, by combining move average smoothing with 'distance' instead of just index positions. That will do the 'weighted' part. Then I will include existing libraries on interploting splines on the smoothed results to do fit a better curve. 
+Once curvature was being computed from real telemetry, the FastF1 position data turned out to be noisy enough that the raw finite-difference curvature came out jagged — small position jitter between samples gets amplified into visible spikes once you differentiate twice. The first fix attempted was a moving-average pass on the raw `x`/`y` positions before differentiating, using a fixed window of a few neighbouring *points* (window sizes of 3, 5, and 7 were tried). This didn't work: the resulting curvature was inconsistent, and at Maggotts/Becketts specifically, smoothing removed the corner's curvature almost entirely. That itself was informative — it meant the underlying position samples through that section are genuinely sparse (the car covers more ground per sample at high speed), so an index-based window was silently averaging over a much larger real distance there than in slower, densely-sampled corners like Turns 3-5.
+
+The next attempt switched the window from a fixed point *count* to a fixed *distance* — walk outward until a set number of metres has been covered, rather than a set number of points — meant to smooth harder where sampling is dense and barely touch sparse stretches. This surfaced a more fundamental problem: whenever a point's distance window happened to reach exactly one neighbour on each side, that point's smoothed position became a plain average of itself and that one neighbour — and by simple commutativity, the *neighbour's* smoothed position (averaging itself with the same one point back) came out to the exact same value. Confirmed directly in real output: adjacent points landing on bit-identical smoothed coordinates, collapsing local curvature to near-zero almost everywhere nearby and producing an extreme spike wherever a `compute_curvature` triplet ended up with two coincident points. Not an easily-patched bug — a structural property of plain averaging whenever the window is comparable to local point spacing.
+
+The theoretically correct fix for that is a *weighted* smoothing spline, where each point's own weight is tied to local sample density — dense regions (Turns 3-5) get smoothed harder, sparse regions (Maggotts/Becketts) are left closer to their raw values. No off-the-shelf library exposes this directly, so the plan was to approximate the "weighted" part with the distance-based averaging already built, then fit an interpolating spline on top for a properly analytic (rather than finite-difference) derivative.
+
+That didn't pan out either, for two separate reasons. First, on raw (unsmoothed) data, a periodic cubic spline — built by hand, a Thomas-algorithm tridiagonal solve extended with the Sherman-Morrison correction for the closed-loop boundary — is still an *interpolating* method, forced through every data point exactly, same as finite differences. It doesn't filter out genuine position noise, so it inherited the same spikes. Second, applying it to the (buggy) smoothed data made things categorically worse: a spline's second derivatives are solved as one globally-coupled linear system, not point by point the way finite differences are, so the duplicate-point collapse in one small stretch was enough to corrupt the entire curvature array end to end (every value came out `NaN`), rather than just the local points touching the bad data. The real lesson: the problem was never the derivative-computation method — it was noise already baked into the FastF1 position data, and no amount of switching between finite differences and interpolating splines fixes noise that's already in the source.
+
+Given that, I moved away from FastF1 entirely and switched to the TUMFTM Silverstone circuit dataset — externally sourced, far more finely and evenly spaced than FastF1's GPS-derived telemetry. Running the exact same, unmodified finite-difference `compute_curvature` (no smoothing, no spline) directly on this data produced a clean, spike-free QSS speed profile that tracks the real lap shape closely — strong evidence the FastF1 data's noise, not the computation method, was the root cause all along. The periodic-spline code stays in the codebase in case a future data source turns out noisy again, but it isn't part of the active pipeline.
+
+One consequence of switching data sources: the tyre-friction/downforce coefficients calibrated against the old FastF1-derived curvature (`µ ≈ 3.78`, `Cl ≈ 2.40`) turned out to over-estimate the grip needed on the new, cleaner geometry. Through trial and error — also accounting for full engine power output — `FRICTION_COEFF ≈ 2.1` and `DOWNFORCE_COEFF ≈ 3.4` fit noticeably better, though not perfectly: there's a persistent tradeoff between matching low-, medium-, and high-speed corners simultaneously with a single global grip/downforce pair, consistent with the earlier finding that a two-parameter fit can't fully capture genuine corner-to-corner grip variation.
+
+
+
+
+Future ideas that can be implemented: (Recorded here just in case forget):
+- Giving battery deployment plan to best attack for a position
+- Giving battery deployment plan to defend for a position
+- Include tapering function, so far we still haven't considered that. And if we do, we would need to use numerical methods to estimate energy deployment instead of using physics formulas.
+- Multi-threading, or any performance improvement optimization techniques
+- Bring in read track data (Not sure what to use them for just yet)
+- Make the car model more realistic, bring in effects of tire wear, aerodynamics when trailing a car, straight line mode which reduces drag, engine RPM affects battery recharging, etc. (If thought of more write them here)
+- Maybe extend this to incorporate with C#, with a strategy software.
+- More accurate lap model. 
+- Use docker to make it deployable
+- A GUI for easy visualization
+- Allow simulation for other tracks, not just Silverstone (Maybe even predict pole lap speed for future races)
