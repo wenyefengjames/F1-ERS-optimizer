@@ -112,4 +112,23 @@ int Track::get_index(){
     return index;
 }
 
+void Track::add_straight(std::string name, double length){
+    track.push_back(std::make_unique<Straight>(name, length));
+}
+
+void Track::add_straight(std::string name, double length, bool sm, double sm_start, double sm_end){
+    track.push_back(std::make_unique<Straight>(name, length, sm, sm_start, sm_end));
+}
+
+void Track::add_fastcorner(std::string name, double entry_to_apex_length, double apex_to_exit_length,
+                            double apex_min_speed, double exit_speed, double throttle_percentage){
+    track.push_back(std::make_unique<FastCorner>(name, entry_to_apex_length, apex_to_exit_length, apex_min_speed, exit_speed, throttle_percentage));
+}
+
+void Track::add_slowcorner(std::string name, double entry_to_apex_length, double apex_to_exit_length,
+                            double time, double entry_speed, double apex_min_speed, double exit_speed, 
+                            double throttle_percentage){
+    track.push_back(std::make_unique<SlowCorner>(name, entry_to_apex_length, apex_to_exit_length, time, entry_speed, apex_min_speed, exit_speed, throttle_percentage));
+}
+
 

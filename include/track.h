@@ -28,6 +28,15 @@ class Track{
         int size();
         int get_index();
 
+        // Adding track segments to the track
+        void add_straight(std::string name, double length);
+        void add_straight(std::string name, double length, bool sm, double sm_start, double sm_end);
+        void add_fastcorner(std::string name, double entry_to_apex_length, double apex_to_exit_length,
+                       double apex_min_speed, double exit_speed, double throttle_percentage);
+        void add_slowcorner(std::string name, double entry_to_apex_length, double apex_to_exit_length,
+                       double time, double entry_speed, double apex_min_speed, double exit_speed, 
+                       double throttle_percentage);
+
 
 
 };
