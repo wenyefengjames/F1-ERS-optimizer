@@ -6,6 +6,8 @@
 #include <cmath>
 #include <limits>
 #include <iostream>
+#include "../../include/track.h"
+#include "../../include/segment.h"
 
 namespace p = physics;
 
@@ -246,6 +248,104 @@ namespace track_gen{
         return output;
     }
 
+    // Automatically categorize track segments in terms of their curvature
+    // Write the results into a CSV file, track segments are still referenced by hand
+    std::vector<std::pair<std::pair<int, int>, int>> track_categorization(const std::vector<double>& curvature){
+
+        // Categorize each data point =====================================
+        const double straight_v = 350;
+        const double fastcorner_v = 230;
+
+        // 0.006
+        // p::FRICTION_COEFF * p::GRAVITY / (straight_v*straight_v) +
+        //                        p::FRICTION_COEFF * p::downforce_coeff(true, 10.0) / p::MASS_KG ;
+        const double straight_curve = 0.006;
+        const double fastcorner_curve = 0.014; // 0.014
+
+        std::vector<std::pair<int, SegmentType>> labels;
+        labels.resize(curvature.size());
+        for(size_t i = 0; i < curvature.size(); i++){
+
+            // Categorize as a Straight
+            if(curvature[i] <= straight_curve){
+                labels[i] = {i, SegmentType::Straight};
+            }
+            // Categorize as a FastCorner
+            else if(curvature[i] > straight_curve && curvature[i] <= fastcorner_curve){
+                labels[i] = {i, SegmentType::FastCorner};
+            }
+            // Categorize as a SlowCorner
+            else{
+                labels[i] = {i, SegmentType::SlowCorner};
+            }
+        }
+
+        // Group each data point by their label =====================================
+
+        // A vector of segment start index and end index, plus their apex index
+        std::vector<std::pair<std::pair<int, int>, int>> segments;
+
+        int start_index = 0;
+        auto prev_label = labels[0];
+        for(size_t i = 1; i < curvature.size(); i++){
+            auto current_label = labels[i];
+
+            // Change of label means the type of segment changed
+            if(prev_label.second != current_label.second){
+                segments.push_back({{start_index, i}, 0});
+                start_index = i + 1;
+            }
+        }
+
+        // Find apex of each corner =====================================
+
+        for(auto& seg : segments){
+            int start_index = seg.first.first + 1;
+            int end_index = seg.first.second;
+            int peak_index = -1;
+            double peak_curve = 0.0;
+
+            while(start_index < end_index){
+                double current_curve = curvature[start_index];
+
+                // Straight has no apex
+                if(labels[start_index].second == SegmentType::Straight) break;
+
+                // Finding the apex of the curve
+                if(curvature[start_index] > peak_curve){
+                    peak_curve = current_curve;
+                    peak_index = start_index;
+                }
+                start_index += 1;
+            }
+
+            seg.second = peak_index;
+        }
+
+        return segments;
+    }
+
+    // Writes the results into a new file
+    void write_track_segment(const std::vector<double>& curvature){
+        auto result = track_categorization(curvature);
+
+        std::ofstream file;
+        file.open(TRACK_CSV_FOLDER + "silverstone_track_segments.csv");
+
+        if(!file.is_open()){
+            throw std::runtime_error("Could not open track data file when writing");
+        }
+
+        file << "Starting index, Ending index, Apex point" << '\n';
+        for(size_t i = 0; i < result.size(); i++){
+            file << result[i].first.first << ', ';
+            file << result[i].first.second << ', ';
+            file << result[i].second<< '\n';
+        }
+
+        file.close();
+    }
+
     // Writes the calculated speed, curvature etc into a file
     // Inputs: file_name, the file location to run QSS simulation on
     void write_csv(const std::string& file_name){
@@ -270,6 +370,8 @@ namespace track_gen{
         }
 
         qss_file.close();
+
+        write_track_segment(curvature);
     }
 
 

@@ -138,11 +138,9 @@ What it should look like:
 - [x] Compute curvature and max speed due to grip
 - [x] Run simulation using QSS
 - [x] Plot a graph of simulation results compare to Kimi's actual speed
-- [ ] Smoothing data points on track to produce results that are more accurate, with less sharp peaks
-- [ ] Automatically categorize the track segments based on the curvatures
-- [ ] Change Track.cpp to use track-generation to produce useable track segments
-- [ ] Categorize these data points back into the existing track segments (This is not the full version I would want, but for now it will work)
-- [ ] Full version: Derive Segment boundaries automatically from the curvatures. 
+- [x] Smoothing data points on track to produce results that are more accurate, with less sharp peaks (This has been changed to using TUMFTM track data instead. And the track data is detailed enough that it doesn't need smoothing at all)
+- [x] Automatically categorize the track segments based on the curvatures
+- [x] Categorize by hand the results produced to ensure the data is correct. This makes the process of track categorization semi-automatic which is good enough. 
 
 [ ] Optimizer
 - [ ] Slow corners: The breaking distance, and entry speed can vary
