@@ -248,9 +248,18 @@ namespace track_gen{
         return output;
     }
 
+    struct track_segment_data{
+        int start;
+        int end;
+        int apex;
+        SegmentType type;
+    };
+
     // Automatically categorize track segments in terms of their curvature
     // Write the results into a CSV file, track segments are still referenced by hand
-    std::vector<std::pair<std::pair<int, int>, int>> track_categorization(const std::vector<double>& curvature){
+    std::vector<track_segment_data> track_categorization(const std::vector<double>& curvature){
+
+        std::vector<track_segment_data> output;
 
         // Categorize each data point =====================================
         const double straight_v = 350;
@@ -283,25 +292,25 @@ namespace track_gen{
         // Group each data point by their label =====================================
 
         // A vector of segment start index and end index, plus their apex index
-        std::vector<std::pair<std::pair<int, int>, int>> segments;
+        std::vector<track_segment_data> segments;
 
         int start_index = 0;
-        auto prev_label = labels[0];
         for(size_t i = 1; i < curvature.size(); i++){
             auto current_label = labels[i];
 
             // Change of label means the type of segment changed
-            if(prev_label.second != current_label.second){
-                segments.push_back({{start_index, i}, 0});
-                start_index = i + 1;
+            if(labels[i - 1].second != labels[i].second){
+                segments.push_back({.start = start_index, .end = i, .apex = -1, .type = labels[i - 1].second});
+                start_index = i;
             }
         }
+        segments.push_back({.start = start_index, .end = curvature.size() - 1, .apex = -1, .type = labels[curvature.size() - 1].second});
 
         // Find apex of each corner =====================================
 
         for(auto& seg : segments){
-            int start_index = seg.first.first + 1;
-            int end_index = seg.first.second;
+            int start_index = seg.start + 1;
+            int end_index = seg.end;
             int peak_index = -1;
             double peak_curve = 0.0;
 
@@ -319,7 +328,7 @@ namespace track_gen{
                 start_index += 1;
             }
 
-            seg.second = peak_index;
+            seg.apex = peak_index;
         }
 
         return segments;
@@ -330,17 +339,33 @@ namespace track_gen{
         auto result = track_categorization(curvature);
 
         std::ofstream file;
+        // Hard coded value for now
         file.open(TRACK_CSV_FOLDER + "silverstone_track_segments.csv");
 
         if(!file.is_open()){
             throw std::runtime_error("Could not open track data file when writing");
         }
 
-        file << "Starting index, Ending index, Apex point" << '\n';
+        file << "Starting index, Ending index, Apex point, Type" << '\n';
         for(size_t i = 0; i < result.size(); i++){
-            file << result[i].first.first << ', ';
-            file << result[i].first.second << ', ';
-            file << result[i].second<< '\n';
+            file << result[i].start << ", ";
+            file << result[i].end << ", ";
+            file << result[i].apex<< ", ";
+            
+            switch(result[i].type){
+                case SegmentType::Straight: {
+                    file << "Straight" << '\n';
+                    break;
+                }
+                case SegmentType::FastCorner: {
+                    file << "FastCorner" << '\n';
+                    break;
+                };
+                case SegmentType::SlowCorner: {
+                    file << "SlowCorner" << '\n';
+                    break;
+                };
+            }
         }
 
         file.close();
@@ -350,12 +375,15 @@ namespace track_gen{
     // Inputs: file_name, the file location to run QSS simulation on
     void write_csv(const std::string& file_name){
         auto results = qss("");
+
+        // Hard coded value for now
         const std::vector<TrackDataPoint> track_data = read_csv("Silverstone.csv");
         const std::vector<double> curvature = compute_curvature(track_data);
         const std::vector<double> vmax = compute_vmax(curvature);
 
         std::ofstream qss_file;
-        qss_file.open(TRACK_CSV_FOLDER + "qss_silverstone_new.csv");
+        // Hard coded value for now
+        qss_file.open(TRACK_CSV_FOLDER + "qss_silverstone.csv");
 
         if(!qss_file.is_open()){
             throw std::runtime_error("Could not open track data file when writing");

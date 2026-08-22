@@ -18,7 +18,7 @@ lap = session.laps.pick_drivers("ANT").pick_fastest()
 telemetry = lap.get_telemetry()
 
 track_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data', 'track-data')
-qss_dir = os.path.join(track_data_dir, 'qss_silverstone_new.csv')
+qss_dir = os.path.join(track_data_dir, 'qss_silverstone.csv')
 
 qss = pd.read_csv(qss_dir)
 
