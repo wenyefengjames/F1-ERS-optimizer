@@ -28,9 +28,10 @@ namespace physics {
     inline constexpr double DRAG_AREA_COEFF = 0.8;          // CdA, m^2
     inline constexpr double AIR_DENSITY = 1.225;            // rho, kg/m^3
     inline constexpr double FRONTAL_AREA = 1.45;            // A, m^2
-    inline constexpr double CM_DRAG_COEFF = 1.0;            // Cd, Corner mode, no unit
-    inline constexpr double SM_DRAG_COEFF = 0.7;            // Cd, Stragiht mode, no unit
-    inline constexpr double DOWNFORCE_COEFF = 3.4;         // Cl, Corner mode, no unit
+    inline constexpr double CM_DRAG_COEFF = 1.0;            // Cd, Corner Mode, no unit
+    inline constexpr double SM_DRAG_COEFF = 0.7;            // Cd, Stragiht Mode, no unit
+    inline constexpr double CM_DOWNFORCE_COEFF = 3.4;       // Cl, Corner Mode, no unit
+    inline constexpr double SM_DOWNFORCE_COEFF = 3.4;       // Cl, Stragiht Mode, no unit
     inline constexpr double BATTERY_CAPACITY = 4;         // MJ
     inline constexpr double MGU_K = 350;                    // kW
     inline constexpr double ICE = 400;                      // kW

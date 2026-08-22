@@ -247,7 +247,10 @@ namespace physics {
     double downforce_coeff(bool sm_on, double delta){
         if(delta < 0) return -1;
 
-        return 0.5 * AIR_DENSITY * FRONTAL_AREA * DOWNFORCE_COEFF;
+        static const double with_sm = 0.5 * AIR_DENSITY * FRONTAL_AREA * SM_DOWNFORCE_COEFF;
+        static const double without_sm = 0.5 * AIR_DENSITY * FRONTAL_AREA * CM_DOWNFORCE_COEFF;
+        if(sm_on) return with_sm;
+        else return without_sm;
     }
 
     // Overloaded function where SM is true 
