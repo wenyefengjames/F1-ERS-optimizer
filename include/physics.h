@@ -190,6 +190,23 @@ namespace physics {
         };
     };
 
+    // Calculate maximum braking deceleration possible
+    // Inputs: current_speed_kmh - current speed, in km/h
+    //         curvature - the curvature of the current point, m^-1
+    //         delta - time to the car in front
+    //         sm - indicates Straight Mode
+    // Output: maximum deceleration possible, in m/s^2
+    double max_deceleration(double current_speed_kmh, double curvature, double delta, bool sm);
+
+    // Calculate maximum acceleration possible
+    // Inputs: current_speed_kmh - current speed, in km/h
+    //         curvature - the curvature of the current point, m^-1
+    //         delta - time to the car in front
+    //         sm - indicates Straight Mode
+    // Output: maximum deceleration possible, in m/s^2
+    double max_acceleration(double current_speed_kmh, double curvature, double delta, bool sm);
+
+
     // Harvesting methods ==============================================================
 
     // Calculates the amount of energy harvested during braking

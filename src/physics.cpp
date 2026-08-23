@@ -362,6 +362,43 @@ namespace physics {
         }
     }
 
+    // Calculate maximum braking deceleration possible
+    double max_deceleration(double current_speed_kmh, double curvature, double delta, bool sm){
+        // Precomputed values because they don't depend on the parameters
+        static const double max_decel_pre1 = 0.5 * FRICTION_COEFF * GRAVITY; // Times by 0.5 because only the rear tires produces grip for accelerati
+        static const double max_decel_pre2 = FRICTION_COEFF * downforce_coeff(sm, delta) + drag_coeff(sm);
+        static const double max_lat_pre = FRICTION_COEFF * GRAVITY;
+
+        double current_speed_ms = current_speed_kmh / 3.6;
+
+        double lateral_acc = current_speed_ms*current_speed_ms * curvature;
+        double max_decel = 2.0 * max_decel_pre1 + max_decel_pre2 * current_speed_ms*current_speed_ms / MASS_KG;
+        double max_lateral_acc = max_lat_pre + FRICTION_COEFF * downforce(current_speed_kmh, sm, delta) / MASS_KG;
+        double decel = max_decel * std::sqrt(std::max(0.0, 1.0 - (lateral_acc / max_lateral_acc)*(lateral_acc / max_lateral_acc)));
+
+        return decel;
+    }  
+    
+    // Calculate maximum acceleration possible
+    double max_acceleration(double current_speed_kmh, double curvature, double delta, bool sm){
+        // Precomputed values because they don't depend on the parameters
+        static const double max_acc_pre1 = 0.5 * FRICTION_COEFF * GRAVITY; // Times by 0.5 because only the rear tires produces grip for acceleration
+        static const double max_acc_pre2 = 0.5 * FRICTION_COEFF * downforce_coeff(sm, delta) - drag_coeff(sm);
+        static const double max_lat_pre = FRICTION_COEFF * GRAVITY;
+        static const double engine_power = (ICE + MGU_K) * 1000;
+
+        double current_speed_ms = current_speed_kmh / 3.6;
+        double lat_forward = current_speed_ms*current_speed_ms * curvature;
+
+        double max_acc = max_acc_pre1 + max_acc_pre2 * current_speed_ms*current_speed_ms / MASS_KG;
+        double max_lateral_acc = max_lat_pre + FRICTION_COEFF * downforce(current_speed_kmh, sm, delta) / MASS_KG;
+        double acc = max_acc * std::sqrt(std::max(0.0, 1.0 - (lat_forward / max_lateral_acc)*(lat_forward / max_lateral_acc)));
+        double max_engine_acc = engine_power / (MASS_KG * current_speed_ms) - drag(current_speed_kmh, sm) / MASS_KG;
+        double min_acc = std::min(acc, max_engine_acc);
+
+        return min_acc;
+    }
+
     // Harvesting methods ==============================================================
 
     double braking_harvest(double current_speed_kmh, double target_speed_kmh){

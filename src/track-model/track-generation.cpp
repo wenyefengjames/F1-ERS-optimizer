@@ -176,13 +176,6 @@ namespace track_gen{
         forward_pass[min_index] = forward_v;
         backward_pass[min_index] = backward_v;
 
-        // Constants that don't change within the loop, therefore precomputed
-        const double max_acc_pt1 = 0.5 * p::FRICTION_COEFF * p::GRAVITY; // Times by 0.5 because only the rear tires produces grip for acceleration
-        const double max_acc_pt2 = 0.5 * p::FRICTION_COEFF * p::downforce_coeff(false, 10.0) - p::drag_coeff(false);
-        const double max_decel_pt2 = p::FRICTION_COEFF * p::downforce_coeff(false, 10.0) + p::drag_coeff(false);
-        const double max_lat_pt = p::FRICTION_COEFF * p::GRAVITY;
-        const double engine_power = (p::ICE + p::MGU_K / 2) * 1000; // Using half of the MGU-K, a good middle ground
-
         // Because the distance at the end of the lap goes from a large value to 0,
         // I need to calculate it using positional data instead
         const double wrap_around_dist = std::sqrt((track_data[vmax.size() - 1].x_pos - track_data[0].x_pos)*
@@ -196,8 +189,6 @@ namespace track_gen{
         // Forward and Backward Integerations
         for(size_t i = 0; i < vmax.size(); i++){
             // Forward pass ==========================================================
-            double forward_v2 = forward_v * forward_v;
-            double lat_forward = forward_v2 * curvature[forward_index];
 
             // Reaching the end of the lap
             if(forward_index == vmax.size() - 1){
@@ -209,18 +200,12 @@ namespace track_gen{
                 forward_index += 1;
             }
 
-            double max_acc = max_acc_pt1 + max_acc_pt2 * forward_v2 / p::MASS_KG;
-            double max_lat_forward = max_lat_pt + p::FRICTION_COEFF * p::downforce(forward_v * 3.6, false, 10.0) / p::MASS_KG;
-            double acc = max_acc * std::sqrt(std::max(0.0, 1.0 - (lat_forward / max_lat_forward)*(lat_forward / max_lat_forward)));
-            double max_engine_acc = engine_power / (p::MASS_KG * forward_v) - p::drag(forward_v * 3.6, false) / p::MASS_KG;
-            double min_acc = std::min(acc, max_engine_acc);
+            double min_acc = p::max_acceleration(forward_v * 3.6, curvature[forward_index], 10.0, false);
 
-            forward_v = std::min(std::max(0.0, std::sqrt(forward_v2 + 2 * min_acc *  ds_forward)), vmax[forward_index]);
+            forward_v = std::min(std::max(0.0, std::sqrt(forward_v*forward_v + 2 * min_acc *  ds_forward)), vmax[forward_index]);
             forward_pass[forward_index] = forward_v;
 
             // Backward pass =========================================================
-            double backward_v2 = backward_v * backward_v;
-            double lat_backward = backward_v2 * curvature[backward_index];
 
             // Reaching the end of the lap
             if(backward_index == 0){
@@ -232,11 +217,9 @@ namespace track_gen{
                 backward_index -= 1;
             }
 
-            double max_decel = 2.0 * max_acc_pt1 + max_decel_pt2 * backward_v2 / p::MASS_KG;
-            double max_lat_backward = max_lat_pt + p::FRICTION_COEFF * p::downforce(backward_v * 3.6, false, 10.0) / p::MASS_KG;
-            double decel = max_decel * std::sqrt(std::max(0.0, 1.0 - (lat_backward / max_lat_backward)*(lat_backward / max_lat_backward)));
+            double decel = p::max_deceleration(backward_v * 3.6, curvature[backward_index], 10.0, false);
 
-            backward_v = std::min(std::max(0.0, std::sqrt(backward_v2 + 2 * decel * ds_backward)), vmax[backward_index]);
+            backward_v = std::min(std::max(0.0, std::sqrt(backward_v*backward_v + 2 * decel * ds_backward)), vmax[backward_index]);
             backward_pass[backward_index] = backward_v;
         }
 
