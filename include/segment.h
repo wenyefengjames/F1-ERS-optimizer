@@ -1,7 +1,12 @@
 #pragma once
 #include <string>
 
-enum class SegmentType {Straight, FastCorner, SlowCorner};
+enum class SegmentType {Straight, FastCorner, SlowCorner, Corner};
+
+struct SpeedTraceType{
+    double speed_kmh;
+    double distance_m;
+};
 
 class Segment {
     // A class that should be inherited by straight, slow-corner, and fast-corner. 

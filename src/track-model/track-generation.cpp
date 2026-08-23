@@ -231,95 +231,48 @@ namespace track_gen{
         return output;
     }
 
-    struct track_segment_data{
-        int start;
-        int end;
-        int apex;
-        SegmentType type;
-    };
-
-    // Automatically categorize track segments in terms of their curvature
+    // Automatically categorize track segments in terms of QSS simulation speed
     // Write the results into a CSV file, track segments are still referenced by hand
-    std::vector<track_segment_data> track_categorization(const std::vector<double>& curvature){
-
-        std::vector<track_segment_data> output;
+    std::vector<std::pair<std::pair<int, int>, SegmentType>> track_categorization(const std::vector<double>& qss_results){
 
         // Categorize each data point =====================================
-        const double straight_v = 350;
-        const double fastcorner_v = 230;
-
-        // 0.006
-        // p::FRICTION_COEFF * p::GRAVITY / (straight_v*straight_v) +
-        //                        p::FRICTION_COEFF * p::downforce_coeff(true, 10.0) / p::MASS_KG ;
-        const double straight_curve = 0.006;
-        const double fastcorner_curve = 0.014; // 0.014
+        const double straight_v = 245 / 3.6; // Because QSS uses m/s not km/h
 
         std::vector<std::pair<int, SegmentType>> labels;
-        labels.resize(curvature.size());
-        for(size_t i = 0; i < curvature.size(); i++){
+        labels.resize(qss_results.size());
+        for(size_t i = 0; i < qss_results.size(); i++){
 
             // Categorize as a Straight
-            if(curvature[i] <= straight_curve){
+            if(qss_results[i] > straight_v){
                 labels[i] = {i, SegmentType::Straight};
             }
-            // Categorize as a FastCorner
-            else if(curvature[i] > straight_curve && curvature[i] <= fastcorner_curve){
-                labels[i] = {i, SegmentType::FastCorner};
-            }
-            // Categorize as a SlowCorner
+            // Categorize as a Corner
             else{
-                labels[i] = {i, SegmentType::SlowCorner};
+                labels[i] = {i, SegmentType::Corner};
             }
         }
 
         // Group each data point by their label =====================================
-
-        // A vector of segment start index and end index, plus their apex index
-        std::vector<track_segment_data> segments;
+        std::vector<std::pair<std::pair<int, int>, SegmentType>> output;
 
         int start_index = 0;
-        for(size_t i = 1; i < curvature.size(); i++){
+        for(size_t i = 1; i < qss_results.size(); i++){
             auto current_label = labels[i];
 
             // Change of label means the type of segment changed
             if(labels[i - 1].second != labels[i].second){
-                segments.push_back({.start = start_index, .end = i, .apex = -1, .type = labels[i - 1].second});
+                output.push_back({{start_index, i}, labels[i - 1].second});
                 start_index = i;
             }
         }
-        segments.push_back({.start = start_index, .end = curvature.size() - 1, .apex = -1, .type = labels[curvature.size() - 1].second});
+        output.push_back({{start_index, qss_results.size() - 1}, labels[qss_results.size() - 1].second});
 
-        // Find apex of each corner =====================================
-
-        for(auto& seg : segments){
-            int start_index = seg.start + 1;
-            int end_index = seg.end;
-            int peak_index = -1;
-            double peak_curve = 0.0;
-
-            while(start_index < end_index){
-                double current_curve = curvature[start_index];
-
-                // Straight has no apex
-                if(labels[start_index].second == SegmentType::Straight) break;
-
-                // Finding the apex of the curve
-                if(curvature[start_index] > peak_curve){
-                    peak_curve = current_curve;
-                    peak_index = start_index;
-                }
-                start_index += 1;
-            }
-
-            seg.apex = peak_index;
-        }
-
-        return segments;
+        return output;
     }
 
     // Writes the results into a new file
-    void write_track_segment(const std::vector<double>& curvature){
-        auto result = track_categorization(curvature);
+    void write_track_segment(const std::vector<double>& qss_results){
+        auto result = track_categorization(qss_results);
 
         std::ofstream file;
         // Hard coded value for now
@@ -329,23 +282,18 @@ namespace track_gen{
             throw std::runtime_error("Could not open track data file when writing");
         }
 
-        file << "Starting index, Ending index, Apex point, Type" << '\n';
+        file << "Starting index, Ending index, Type" << '\n';
         for(size_t i = 0; i < result.size(); i++){
-            file << result[i].start << ", ";
-            file << result[i].end << ", ";
-            file << result[i].apex<< ", ";
+            file << result[i].first.first << ", ";
+            file << result[i].first.second << ", ";
             
-            switch(result[i].type){
+            switch(result[i].second){
                 case SegmentType::Straight: {
                     file << "Straight" << '\n';
                     break;
                 }
-                case SegmentType::FastCorner: {
-                    file << "FastCorner" << '\n';
-                    break;
-                };
-                case SegmentType::SlowCorner: {
-                    file << "SlowCorner" << '\n';
+                case SegmentType::Corner: {
+                    file << "Corner" << '\n';
                     break;
                 };
             }
@@ -382,7 +330,7 @@ namespace track_gen{
 
         qss_file.close();
 
-        write_track_segment(curvature);
+        write_track_segment(results);
     }
 
 
