@@ -142,10 +142,28 @@ What it should look like:
 - [x] Automatically categorize the track segments based on the curvatures
 - [x] Categorize by hand the results produced to ensure the data is correct. This makes the process of track categorization semi-automatic which is good enough. 
 
+# (Was going to implement these. But I realized that there are more necessary changes needed to be done, which will make the following not applicable. Read Prototype 3.5 for more information )
 [ ] Optimizer
 - [ ] Slow corners: The breaking distance, and entry speed can vary
 - [ ] Fast corners: We have apex_min_speed as a cap to the max speed we can go through. We can try a number of different speeds 
 - [ ] Straight: the deployment doesn't have to hard code as 350kW from MGU-K. We can try deploy in different amount, like step_size in the exits of fast corner. We also doesn't have to keep it constant. Could deploy max for 100m, then 200kW for another 50. Then 0, then recharge etc.
+
+## Prototype 3.5: (Deadline: 21st of August)
+- Reforming the track model entirely. Instead of categorizing as straight/fast/slow corners. I will simply put them as grip limited/grip not limited. This combines segments together. Also makes use of QSS results, as well as more generalized track representation, which allows better automation in terms of track representation. 
+- Dont use throttle percentages anymore. Represent power outputs just based on the kW units. Therefore, even places where grip isn't a limiting factor, the power output can vary due to superclipping, etc. No lifting and coasting anymore, just numbers in kW. If power output < 400kW, the ICE. The rest of that goes to recharging.
+
+Track model:
+- Replace the 3 types into 2, grip limited or not limited
+- Change track generation to automate this
+- Grip limited should have speed trace, length, entry and exit speed, time spent, energy recovered.
+- Grip not limited should have length, start and end of straight mode (this can only be hand computed because there are no data about it)
+- Use Google Test to ensure new implementation are correct.
+
+Optimizer:
+- Use acceleration and braking physics functions to calculate things
+- Option tables need to be redone
+- produce speed trace and energy deployment 
+
 
 
 ## Fourth Prototype: (Deadline: 21st of August)
