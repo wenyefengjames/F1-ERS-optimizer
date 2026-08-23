@@ -200,7 +200,7 @@ namespace track_gen{
                 forward_index += 1;
             }
 
-            double min_acc = p::max_acceleration(forward_v * 3.6, curvature[forward_index], 10.0, false);
+            double min_acc = p::max_acceleration(forward_v * 3.6, curvature[forward_index], 10.0, (p::ICE + p::MGU_K) / 2.0, false);
 
             forward_v = std::min(std::max(0.0, std::sqrt(forward_v*forward_v + 2 * min_acc *  ds_forward)), vmax[forward_index]);
             forward_pass[forward_index] = forward_v;
@@ -233,7 +233,8 @@ namespace track_gen{
 
     // Automatically categorize track segments in terms of QSS simulation speed
     // Write the results into a CSV file, track segments are still referenced by hand
-    std::vector<std::pair<std::pair<int, int>, SegmentType>> track_categorization(const std::vector<double>& qss_results){
+    std::vector<std::pair<std::pair<int, int>, SegmentType>> track_categorization(const std::vector<double>& qss_results,
+                                                                                  const std::vector<double>& curvature){
 
         // Categorize each data point =====================================
         const double straight_v = 245 / 3.6; // Because QSS uses m/s not km/h
@@ -241,9 +242,11 @@ namespace track_gen{
         std::vector<std::pair<int, SegmentType>> labels;
         labels.resize(qss_results.size());
         for(size_t i = 0; i < qss_results.size(); i++){
+            
 
-            // Categorize as a Straight
-            if(qss_results[i] > straight_v){
+            // Categorize as a Straight if there is enough grip
+            if(p::max_acc_tyres(qss_results[i]*3.6, curvature[i], 10.0, false) >= 
+               p::max_acc_engine(qss_results[i]*3.6, p::ICE, false)){
                 labels[i] = {i, SegmentType::Straight};
             }
             // Categorize as a Corner
@@ -271,8 +274,8 @@ namespace track_gen{
     }
 
     // Writes the results into a new file
-    void write_track_segment(const std::vector<double>& qss_results){
-        auto result = track_categorization(qss_results);
+    void write_track_segment(const std::vector<double>& qss_results, const std::vector<double>& curvature){
+        auto result = track_categorization(qss_results, curvature);
 
         std::ofstream file;
         // Hard coded value for now
@@ -330,7 +333,7 @@ namespace track_gen{
 
         qss_file.close();
 
-        write_track_segment(results);
+        write_track_segment(results, curvature);
     }
 
 

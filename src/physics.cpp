@@ -380,23 +380,39 @@ namespace physics {
     }  
     
     // Calculate maximum acceleration possible
-    double max_acceleration(double current_speed_kmh, double curvature, double delta, bool sm){
+    double max_acceleration(double current_speed_kmh, double curvature, double delta, double engine_power_kW, bool sm){
+        double tyre_acc = max_acc_tyres(current_speed_kmh, curvature, delta, sm);
+
+        double engine_acc = max_acc_engine(current_speed_kmh, engine_power_kW, sm);
+        double min_acc = std::min(tyre_acc, engine_acc);
+
+        return min_acc;
+    }
+
+    // Calculate maximum acceleration possible from tyres
+    double max_acc_tyres(double current_speed_kmh, double curvature, double delta, bool sm){
         // Precomputed values because they don't depend on the parameters
         static const double max_acc_pre1 = 0.5 * FRICTION_COEFF * GRAVITY; // Times by 0.5 because only the rear tires produces grip for acceleration
         static const double max_acc_pre2 = 0.5 * FRICTION_COEFF * downforce_coeff(sm, delta) - drag_coeff(sm);
         static const double max_lat_pre = FRICTION_COEFF * GRAVITY;
-        static const double engine_power = (ICE + MGU_K) * 1000;
 
         double current_speed_ms = current_speed_kmh / 3.6;
-        double lat_forward = current_speed_ms*current_speed_ms * curvature;
+        double lateral_acc = current_speed_ms*current_speed_ms * curvature;
 
         double max_acc = max_acc_pre1 + max_acc_pre2 * current_speed_ms*current_speed_ms / MASS_KG;
         double max_lateral_acc = max_lat_pre + FRICTION_COEFF * downforce(current_speed_kmh, sm, delta) / MASS_KG;
-        double acc = max_acc * std::sqrt(std::max(0.0, 1.0 - (lat_forward / max_lateral_acc)*(lat_forward / max_lateral_acc)));
-        double max_engine_acc = engine_power / (MASS_KG * current_speed_ms) - drag(current_speed_kmh, sm) / MASS_KG;
-        double min_acc = std::min(acc, max_engine_acc);
+        double acc = max_acc * std::sqrt(std::max(0.0, 1.0 - (lateral_acc / max_lateral_acc)*(lateral_acc / max_lateral_acc)));
 
-        return min_acc;
+        return acc;
+    }
+
+    // Calculate maximum acceleration through engine
+    double max_acc_engine(double current_speed_kmh, double engine_power_kW, bool sm){
+        if(current_speed_kmh < 0 || engine_power_kW < 0 || engine_power_kW > 750) return -1;
+
+        double engine_acc = engine_power_kW * 1000 / (MASS_KG * current_speed_kmh / 3.6) - drag(current_speed_kmh, sm) / MASS_KG;
+
+        return engine_acc;
     }
 
     // Harvesting methods ==============================================================

@@ -202,9 +202,25 @@ namespace physics {
     // Inputs: current_speed_kmh - current speed, in km/h
     //         curvature - the curvature of the current point, m^-1
     //         delta - time to the car in front
+    //         engine_power_kW - power output from engine, in kW
     //         sm - indicates Straight Mode
-    // Output: maximum deceleration possible, in m/s^2
-    double max_acceleration(double current_speed_kmh, double curvature, double delta, bool sm);
+    // Output: maximum acceleration possible, in m/s^2
+    double max_acceleration(double current_speed_kmh, double curvature, double delta, double engine_power_kW, bool sm);
+
+    // Calculate maximum acceleration possible from the tyres
+    // Inputs: current_speed_kmh - current speed, in km/h
+    //         curvature - the curvature of the current point, m^-1
+    //         delta - time to the car in front
+    //         sm - indicates Straight Mode
+    // Output: maximum acceleration through tyres, in m/s^2
+    double max_acc_tyres(double current_speed_kmh, double curvature, double delta, bool sm);
+
+    // Calculate maximum acceleration possible from the tyres
+    // Inputs: current_speed_kmh - current speed, in km/h
+    //         engine_power_kW - power output from engine, in kW
+    //         sm - indicates Straight Mode
+    // Output: maximum acceleration from engine, in m/s^2
+    double max_acc_engine(double current_speed_kmh, double engine_power_kW, bool sm);
 
 
     // Harvesting methods ==============================================================
