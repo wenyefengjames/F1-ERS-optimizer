@@ -1,4 +1,5 @@
 #pragma once
+#include "corner.h"
 #include "fast-corner.h"
 #include "slow-corner.h"
 #include "straight.h"
@@ -31,12 +32,7 @@ class Track{
         // Adding track segments to the track
         void add_straight(std::string name, double length);
         void add_straight(std::string name, double length, bool sm, double sm_start, double sm_end);
-        void add_fastcorner(std::string name, double entry_to_apex_length, double apex_to_exit_length,
-                       double apex_min_speed, double exit_speed, double throttle_percentage);
-        void add_slowcorner(std::string name, double entry_to_apex_length, double apex_to_exit_length,
-                       double time, double entry_speed, double apex_min_speed, double exit_speed, 
-                       double throttle_percentage);
-
-
+        void add_corner(std::string name, double entry_speed, double exit_speed, double time, double length,
+                        double energy, std::vector<SpeedTraceType> speed_trace);
 
 };
