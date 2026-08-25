@@ -224,19 +224,26 @@ std::vector<Option> Optimizer::segment_options(int seg_index, double initial_bat
     std::vector<Option> option_table;    
 
     if (circuit.at(seg_index)->get_type() == SegmentType::SlowCorner){
-
         return option_table_slowcorner(seg_index);
     } 
     else if(circuit.at(seg_index)->get_type() == SegmentType::FastCorner){
-
         return option_table_fastcorner(seg_index, initial_battery); 
     } 
     else if(circuit.at(seg_index)->get_type() == SegmentType::Straight){
         // std::cout << "Going into Straight" << "\n";
         return option_table_straight(seg_index, initial_battery);      
     }
+    else{
+        return option_table_corner(seg_index);
+    }
     return option_table;
 }
+
+// TO DO
+std::vector<Option> Optimizer::option_table_corner(int seg_index){
+
+}
+
 
 // Produces the option table for a fast corner
 // The output should only have one entry, the energy can be both deploy or harvest
@@ -503,6 +510,113 @@ std::vector<Option> Optimizer::best_option_for_bucket(double length, int seg_ind
     return output;
 }
 
+// Producing a vector of Options for a Segment of Straight following with a FastCorner
+std::vector<Option> Optimizer::option_table_straight_new(int seg_index){
+    std::vector<Option> option_table;
+    double length = circuit.at(seg_index)->get_length();
+
+    auto prev_corner = static_cast<Corner*>(circuit.prev(seg_index));
+    auto next_corner = static_cast<Corner*>(circuit.next(seg_index));
+
+    double starting_speed = prev_corner->get_exit_speed();
+    double ending_speed = next_corner->get_entry_speed();
+ 
+    bool sm = false;
+    auto seg = static_cast<Straight*>(circuit.at(seg_index));
+    std::vector<Option> output;
+
+    // Build the braking lookup table ========================================================
+    const double max_speed = 360; 
+    const double v_step_size = 1;
+    std::vector<TaperedDeploymentResult> braking_lookup_table;
+    TaperedDeploymentResult init = {.speed_kmh = ending_speed, .energy_J = 0,
+                                    .time_s = 0, .distance_m = 0};
+    braking_lookup_table.push_back(init);
+    
+    // Iteratively build up a table of values based on previous values
+    for(int v = 1; v < std::ceil((max_speed - ending_speed) / v_step_size); v++){
+        const double prev_v_ms = braking_lookup_table[v - 1].speed_kmh / 3.6;
+        const double braking_v_ms = (v * v_step_size + ending_speed) / 3.6;
+        const double braking_decel = p::max_deceleration(braking_v_ms * 3.6, 0.0, 10.0, false);
+        const double braking_dis = (braking_v_ms*braking_v_ms - prev_v_ms*prev_v_ms) / (2 * braking_decel) + braking_lookup_table[v - 1].distance_m;
+        const double braking_time = (braking_v_ms - prev_v_ms) / braking_decel + braking_lookup_table[v - 1].time_s;
+        const double braking_energy = braking_time * p::MGU_K * 1000;
+
+        const TaperedDeploymentResult output = {.speed_kmh = braking_v_ms * 3.6, .energy_J = braking_energy,
+                                                .time_s = braking_time, .distance_m = braking_dis};
+
+        braking_lookup_table.push_back(output);
+    }
+
+    // TESTING
+
+    for(size_t i = 1; i < braking_lookup_table.size(); i++){
+        std::cout << "Initial braking velocity: " << braking_lookup_table[i].speed_kmh << '\t';
+        std::cout << "Braking time: " << braking_lookup_table[i].time_s << '\t';
+        std::cout << "Braking distance: " << braking_lookup_table[i].distance_m << '\t';
+        std::cout << "Harvested energy: " << braking_lookup_table[i].energy_J << '\t';
+        std::cout << "Deceleration: " << (1 / 3.6) / (braking_lookup_table[i].time_s - braking_lookup_table[i-1].time_s) << '\n';
+    }
+
+
+    // Find the optimal time for the given energy bucket
+    for (int dis = 0; dis < circuit.at(seg_index)->get_length() / partition_size; dis++){
+
+        // Deployment phase =============================================================
+        const double deploy_dis = dis * partition_size;
+
+        TaperedDeploymentResult results  = p::energy_deployed_with_taper(starting_speed, deploy_dis, seg->get_sm_start(), seg->get_sm_end(), mom);
+
+        const double speed = results.speed_kmh;
+        const double time_deploying = results.time_s;
+        double energy_deployed = results.energy_J;
+        
+        const double harvest_dis = length - results.distance_m;
+        // TESTING
+        // std::cout << "energy_deployed: " << energy_deployed << "\t";
+        // std::cout << "speed: " << speed << "\t";
+        // std::cout << "time_deploying: " << time_deploying << "\n";
+
+        // If the amount of energy deployed is more than what the battery have, break out of this loop
+        // Because the deployment distance will only keep increasing, so the battery wont have enough for distance longer than current
+        if(energy_deployed >= p::BATTERY_CAPACITY * 1000000) break;
+
+        if(deploy_dis >= seg->get_sm_end()) sm = false;
+        else sm = true;
+
+        // Harvest phase =============================================================
+
+        auto result_for_time_energy = p::time_to_reach_speed_over_distance(speed, ending_speed, harvest_dis, mom, sm);
+        if(result_for_time_energy == std::nullopt) break;
+
+        const double energy_harvested = result_for_time_energy.value().energy_J;
+        const double time_harvesting = result_for_time_energy.value().time_s;
+
+        const double total_time = time_harvesting + time_deploying;
+
+        // TESTING
+        // std::cout << "energy_harvested: " << energy_harvested << "\t";
+        // std::cout << "time_harvesting: " << time_harvesting << "\n";
+        // std::cout << "total energy: " << energy_harvested - energy_deployed << "\t";
+        // std::cout << "total time: " << total_time << "\n";
+        // std::cout << "============================ " << "\n";
+
+
+        // Braking phase =============================================================
+
+        energy_deployed = bucket_size * std::ceil(energy_deployed  / 1000000 * (1/bucket_size));
+        int energy_harvested_buckets = 1 + static_cast<int>(std::floor(energy_harvested / 1000000 * (1/bucket_size)));
+
+        // Option table generating loop, doesn't need to harvest all the energy given
+        for (int energy = 0; energy < energy_harvested_buckets; energy++){
+            const double energy_bucket_MJ = energy * bucket_size;
+
+            Option temp = {.deploy = energy_deployed, .harvest = energy_bucket_MJ, .delta = total_time};
+            output.push_back(temp);
+        }
+    }
+    return output;
+}
 
 void Optimizer::initialize_option_table_lookup_table(){
     option_table_lookup_table.resize(circuit.size());

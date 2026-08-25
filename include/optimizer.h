@@ -38,9 +38,13 @@ class Optimizer{
     public:
         Track circuit = Track();
         std::vector<Option> option_table_straight(int seg_index, double initial_battery);
+        std::vector<Option> option_table_straight_new(int seg_index);
         std::vector<Option> option_table_slowcorner(int seg_index);
         std::vector<Option> option_table_fastcorner(int seg_index, double initial_battery);  
+        std::vector<Option> option_table_corner(int seg_index); 
         std::vector<Option> best_option_for_bucket(double length, int seg_index, double exit_speed, 
+                                                    double target_speed, double initial_battery);
+        std::vector<Option> best_option_for_bucket_new(double length, int seg_index, double exit_speed, 
                                                     double target_speed, double initial_battery);
         void initialize_option_table_lookup_table();
 
