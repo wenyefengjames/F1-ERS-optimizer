@@ -366,18 +366,26 @@ namespace physics {
     double max_deceleration(double current_speed_kmh, double curvature, double delta, bool sm){
         // Precomputed values because they don't depend on the parameters
         static const double max_decel_pre1 = 0.5 * FRICTION_COEFF * GRAVITY; // Times by 0.5 because only the rear tires produces grip for accelerati
-        static const double max_decel_pre2 = FRICTION_COEFF * downforce_coeff(sm, delta) + drag_coeff(sm);
+        static const double max_decel_pre2 = FRICTION_COEFF * downforce_coeff(sm, delta); // Tyre grip only -- drag is handled separately below
         static const double max_lat_pre = FRICTION_COEFF * GRAVITY;
 
         double current_speed_ms = current_speed_kmh / 3.6;
 
         double lateral_acc = current_speed_ms*current_speed_ms * curvature;
-        double max_decel = 2.0 * max_decel_pre1 + max_decel_pre2 * current_speed_ms*current_speed_ms / MASS_KG;
-        double max_lateral_acc = max_lat_pre + FRICTION_COEFF * downforce(current_speed_kmh, sm, delta) / MASS_KG;
-        double decel = max_decel * std::sqrt(std::max(0.0, 1.0 - (lateral_acc / max_lateral_acc)*(lateral_acc / max_lateral_acc)));
+
+        // Tyre-only grip, each axis capped independently so the friction circle they feed
+        // into stays a real circle instead of the downforce-scaled axis blowing past the tyre's
+        // actual physical ceiling at high speed
+        double max_decel_tyre = std::min(2.0 * max_decel_pre1 + max_decel_pre2 * current_speed_ms*current_speed_ms / MASS_KG, TYRE_FORCE_CAP);
+        double max_lateral_acc = std::min(max_lat_pre + FRICTION_COEFF * downforce(current_speed_kmh, sm, delta) / MASS_KG, TYRE_FORCE_CAP);
+
+        double decel_tyre = max_decel_tyre * std::sqrt(std::max(0.0, 1.0 - (lateral_acc / max_lateral_acc)*(lateral_acc / max_lateral_acc)));
+
+        // Drag isn't a tyre force, so it stacks on top of the capped tyre grip uncapped
+        double decel = decel_tyre + drag(current_speed_kmh, sm) / MASS_KG;
 
         return decel;
-    }  
+    }
     
     // Calculate maximum acceleration possible
     double max_acceleration(double current_speed_kmh, double curvature, double delta, double engine_power_kW, bool sm){

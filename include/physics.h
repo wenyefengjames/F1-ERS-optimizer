@@ -39,6 +39,9 @@ namespace physics {
     inline constexpr double DELTA_T = 0.01;                 // s, change in time for numerical approximation
     inline constexpr double FRICTION_COEFF = 2.1;           // rho, for the soft tyres
     inline constexpr double GRAVITY = 9.81;                 // g, ms^-2
+    inline constexpr double TYRE_FORCE_CAP = 6.0 * GRAVITY;  // Ceiling on total tyre grip, in g. Real tyre friction desaturates at high normal
+                                                            // load, so FRICTION_COEFF*downforce shouldn't be allowed to keep growing forever
+    
 
 
     // Kinetic energy at a given speed (no drag).
