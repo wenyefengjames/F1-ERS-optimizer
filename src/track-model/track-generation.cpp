@@ -141,6 +141,13 @@ namespace track_gen{
                 max_speed = std::numeric_limits<double>::infinity();
             }
 
+            // Real tyre grip saturates at TYRE_FORCE_CAP -- once curvature demands more lateral
+            // force than that, the formula above overstates achievable speed (same physical
+            // ceiling as max_deceleration/max_acc_tyres in physics.cpp)
+            if(k > 0){
+                max_speed = std::min(max_speed, std::sqrt(p::TYRE_FORCE_CAP / k));
+            }
+
             // Cap it at 400km/h
             if(max_speed > 400.0 / 3.6) max_speed = 400.0 / 3.6;
 
@@ -200,7 +207,7 @@ namespace track_gen{
                 forward_index += 1;
             }
 
-            double min_acc = p::max_acceleration(forward_v * 3.6, curvature[forward_index], 10.0, (p::ICE + p::MGU_K) / 2.0, false);
+            double min_acc = p::max_acceleration(forward_v * 3.6, curvature[forward_index], 10.0, p::ICE + p::MGU_K, false);
 
             forward_v = std::min(std::max(0.0, std::sqrt(forward_v*forward_v + 2 * min_acc *  ds_forward)), vmax[forward_index]);
             forward_pass[forward_index] = forward_v;

@@ -401,15 +401,20 @@ namespace physics {
     double max_acc_tyres(double current_speed_kmh, double curvature, double delta, bool sm){
         // Precomputed values because they don't depend on the parameters
         static const double max_acc_pre1 = 0.5 * FRICTION_COEFF * GRAVITY; // Times by 0.5 because only the rear tires produces grip for acceleration
-        static const double max_acc_pre2 = 0.5 * FRICTION_COEFF * downforce_coeff(sm, delta) - drag_coeff(sm);
+        static const double max_acc_pre2 = 0.5 * FRICTION_COEFF * downforce_coeff(sm, delta); // Tyre grip only -- drag is handled separately below
         static const double max_lat_pre = FRICTION_COEFF * GRAVITY;
 
         double current_speed_ms = current_speed_kmh / 3.6;
         double lateral_acc = current_speed_ms*current_speed_ms * curvature;
 
-        double max_acc = max_acc_pre1 + max_acc_pre2 * current_speed_ms*current_speed_ms / MASS_KG;
-        double max_lateral_acc = max_lat_pre + FRICTION_COEFF * downforce(current_speed_kmh, sm, delta) / MASS_KG;
-        double acc = max_acc * std::sqrt(std::max(0.0, 1.0 - (lateral_acc / max_lateral_acc)*(lateral_acc / max_lateral_acc)));
+        // Tyre-only grip, each axis capped independently -- same treatment as max_deceleration
+        double max_acc_tyre = std::min(max_acc_pre1 + max_acc_pre2 * current_speed_ms*current_speed_ms / MASS_KG, TYRE_FORCE_CAP);
+        double max_lateral_acc = std::min(max_lat_pre + FRICTION_COEFF * downforce(current_speed_kmh, sm, delta) / MASS_KG, TYRE_FORCE_CAP);
+
+        double acc_tyre = max_acc_tyre * std::sqrt(std::max(0.0, 1.0 - (lateral_acc / max_lateral_acc)*(lateral_acc / max_lateral_acc)));
+
+        // Drag isn't a tyre force -- it opposes acceleration, so it comes off after the capped tyre grip
+        double acc = acc_tyre - drag(current_speed_kmh, sm) / MASS_KG;
 
         return acc;
     }
