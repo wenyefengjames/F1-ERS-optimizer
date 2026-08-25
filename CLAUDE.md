@@ -153,16 +153,19 @@ What it should look like:
 - Dont use throttle percentages anymore. Represent power outputs just based on the kW units. Therefore, even places where grip isn't a limiting factor, the power output can vary due to superclipping, etc. No lifting and coasting anymore, just numbers in kW. If power output < 400kW, the ICE. The rest of that goes to recharging.
 
 Track model:
-- Replace the 3 types into 2, grip limited or not limited
-- Change track generation to automate this
-- Grip limited should have speed trace, length, entry and exit speed, time spent, energy recovered.
-- Grip not limited should have length, start and end of straight mode (this can only be hand computed because there are no data about it)
-- Use Google Test to ensure new implementation are correct.
+- [x] Replace the 3 types into 2, grip limited or not limited
+- [x] Change track generation to automate this
+- [x] Grip limited should have speed trace, length, entry and exit speed, time spent, energy recovered.
+- [x] Grip not limited should have length, start and end of straight mode (this can only be hand computed because there are no data about it)
+- [ ] Use Google Test to ensure new implementation are correct.
 
 Optimizer:
-- Use acceleration and braking physics functions to calculate things
-- Option tables need to be redone
-- produce speed trace and energy deployment 
+- [ ] Use acceleration and braking physics functions to calculate things instead of just the assumed 5.5g
+- [ ] Redo straight's option table to add braking phase into it
+- [ ] Add option table for SegmentType of Corner
+- [ ] Test both individually
+- [ ] Remove fast and slow corners option tables
+- [ ] produce speed trace and energy deployment 
 
 
 
