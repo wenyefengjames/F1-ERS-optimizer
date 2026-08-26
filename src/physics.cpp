@@ -254,49 +254,51 @@ namespace physics {
     }
 
     // Overloaded function where SM is true 
-    TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, double sm_start, double sm_end, bool mom){
+    TaperedDeploymentResult energy_deployed_with_taper(double initial_kmh, double distance, double deploy_rate_kW, double sm_start, double sm_end, bool mom){
         double current_kmh = initial_kmh; 
         double total_deployed_distance = 0.0;
         double total_energy_deployed = 0.0;
         double total_time = 0.0;
         double ke_gained = 0;
+        bool sm = false;
         
         // Numerical method to approximate net KE gain
         while(total_deployed_distance < distance){
-            double current_power = taper_curve(current_kmh, mom);
+            double current_power = std::min(deploy_rate_kW, taper_curve(current_kmh, mom));
 
             // sm_start being less than 0 indicates that SM is false
             if(sm_start >=0 && total_deployed_distance >= sm_start && total_deployed_distance <= sm_end){
-                ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * DELTA_T / 3.6, true);
+                sm = true;
             }
             else{
-                ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * DELTA_T / 3.6, false);
+                sm = false;
             }
+            ke_gained = work_done_with_drag(current_power + ICE, current_kmh, current_kmh * DELTA_T / 3.6, sm);
 
             total_deployed_distance += current_kmh * DELTA_T / 3.6;
             current_kmh = reverse_ke(current_kmh, ke_gained);
             total_energy_deployed += current_power * DELTA_T * 1000;
             total_time += DELTA_T;
 
-            // Check if the current speed has hit the tapering limit
-            if((current_kmh >= 290 && !mom) || (current_kmh >= 337 && mom)) {
-                double remaining_distance = distance - total_deployed_distance;
+            // If the default deploy rate is higher than the tapered value, then go into lookup table
+            if(deploy_rate_kW > current_power) {
 
+                // Search for the values for the current speed
+                auto query_curr = [](const TaperedDeploymentResult& field){return field.speed_kmh;};
+                std::optional<TaperedDeploymentResult> result_curr = search_taper_table(mom, sm, current_kmh, query_curr);
+                if(result_curr == std::nullopt) continue;
+
+                double remaining_distance = distance - total_deployed_distance + result_curr->distance_m;
+
+                // Search for the values of the target speed
                 auto query = [](const TaperedDeploymentResult& field){return field.distance_m;};
-                std::optional<TaperedDeploymentResult> result;
-
-                if(sm_start >=0 && total_deployed_distance >= sm_start && total_deployed_distance <= sm_end){
-                    result = search_taper_table(mom, true, remaining_distance, query);
-                }
-                else{
-                    result = search_taper_table(mom, false, remaining_distance, query);
-                }
+                std::optional<TaperedDeploymentResult> result = search_taper_table(mom, sm, remaining_distance, query);
                 if(result == std::nullopt) continue;
 
                 // After adding these values the loop should exit
-                total_time += result->time_s;
-                total_deployed_distance += result->distance_m;
-                total_energy_deployed += result->energy_J;
+                total_time += result->time_s - result_curr->time_s;
+                total_deployed_distance += result->distance_m - result_curr->distance_m;
+                total_energy_deployed += result->energy_J - result_curr->energy_J;
                 current_kmh = result->speed_kmh;
             }
         }
