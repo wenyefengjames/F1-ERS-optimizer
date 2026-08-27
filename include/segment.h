@@ -15,18 +15,25 @@ class Segment {
     private:
         const std::string name;         // Name of the segment
         const SegmentType type;         // The type of the segment
-        const double length;            // The length of this segment of the track, in km
+        const size_t start_index;       // Start of the segment in QSS CSV file
+        const size_t end_index;         // End of the segment in QSS CSV file
         const bool sm = false;          // Whether straight mode is on or not
 
+    protected:
+        double length = 0.0;            // Distance covered by the segment, set by each derived
+                                         // class's own parse_data() -- protected so they can write to it
+
     public:
-        Segment(std::string name, SegmentType type, double length);
-        Segment(std::string name, SegmentType type, double length, bool sm);
-        
+        Segment(std::string name, SegmentType type, size_t start_index, size_t end_index);
+        Segment(std::string name, SegmentType type, size_t start_index, size_t end_index, bool sm);
+
         // Getters
         const std::string& get_name() const;
         SegmentType get_type() const;
-        double get_length() const;
         bool get_sm() const;
+        size_t get_start_index() const;
+        size_t get_end_index() const;
+        double get_length() const;
 
         virtual ~Segment();
     

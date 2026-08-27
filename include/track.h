@@ -3,6 +3,7 @@
 #include "fast-corner.h"
 #include "slow-corner.h"
 #include "straight.h"
+#include "track-generation.h"
 #include <memory>
 #include <vector>
 
@@ -11,6 +12,10 @@ class Track{
     private:
         std::vector<std::unique_ptr<Segment>> track;
         int index = 0;
+        const std::vector<TrackDataPoint> track_data = track_gen::read_csv("Silverstone.csv");
+        const std::vector<double> curvature = track_gen::compute_curvature(track_data);
+        // const std::vector<double> vmax = track_gen::compute_vmax(curvature);
+        const std::vector<double> qss = track_gen::qss("Silverstone.csv");
 
     public:
 
@@ -30,9 +35,8 @@ class Track{
         int get_index();
 
         // Adding track segments to the track
-        void add_straight(std::string name, double length);
-        void add_straight(std::string name, double length, bool sm, double sm_start, double sm_end);
-        void add_corner(std::string name, double entry_speed, double exit_speed, double time, double length,
-                        double energy, std::vector<SpeedTraceType> speed_trace);
+        void add_straight(std::string name, size_t start_index, size_t end_index);
+        void add_straight(std::string name, size_t start_index, size_t end_index, double sm_start, double sm_end);
+        void add_corner(std::string name, size_t start_index, size_t end_index);
 
 };
