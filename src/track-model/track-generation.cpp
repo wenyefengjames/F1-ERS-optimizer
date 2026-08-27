@@ -207,7 +207,7 @@ namespace track_gen{
                 forward_index += 1;
             }
 
-            double min_acc = p::max_acceleration(forward_v * 3.6, curvature[forward_index], 10.0, p::ICE + p::MGU_K, false);
+            double min_acc = p::max_acceleration(forward_v * 3.6, curvature[forward_index], 10.0, p::ICE + p::MGU_K / 2.0, false);
 
             forward_v = std::min(std::max(0.0, std::sqrt(forward_v*forward_v + 2 * min_acc *  ds_forward)), vmax[forward_index]);
             forward_pass[forward_index] = forward_v;

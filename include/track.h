@@ -1,7 +1,5 @@
 #pragma once
 #include "corner.h"
-#include "fast-corner.h"
-#include "slow-corner.h"
 #include "straight.h"
 #include "track-generation.h"
 #include <memory>

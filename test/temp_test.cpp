@@ -1,94 +1,48 @@
-#include "../include/physics.h"
+#include "../include/track.h"
 #include <iostream>
-#include <optional>
-#include <limits>
-#include <cmath>
 
-namespace p = physics;
-using namespace std;
+// g++ -std=c++20 .\test\temp_test.cpp .\src\track-model\track.cpp .\src\track-model\segment.cpp .\src\track-model\straight.cpp .\src\track-model\corner.cpp .\src\track-model\track-generation.cpp .\src\physics.cpp -o temp_test.exe
+// .\temp_test.exe
 
-// int main(){
+int main(){
+    Track track;
 
-    // TaperedDeploymentResult output = p::energy_deployed_with_taper(speed, distance, mom);
-    // double energy = p::work_done_with_drag(750, speed, distance);
-    // double no_speed = p::reverse_ke(speed,energy);
-    // double time = p::time_to_reach_velocity(no_speed, speed, 750);
+    for(int i = 0; i < track.size(); i++){
+        Segment* seg = track.at(i);
 
-    // std::cout << "Speed: " << output.speed_kmh << "\t";
-    // std::cout << "Speed without taper: " << no_speed << "\n";
-    // std::cout << "Time: " << output.time_s << "\t";
-    // std::cout << "Time without taper: " << time << "\n";
-    // std::cout << "Dis: " << output.distance_m << "\t";
-    // std::cout << "Dis:  without taper: " << distance << "\n";
-    // std::cout << "Energy: " << p::kinetic_energy(output.speed_kmh) - p::kinetic_energy(speed) << "\t";
-    // std::cout << "Energy without taper: " << energy << "\n";
+        std::cout << "===========================================\n";
+        std::cout << "Name: " << seg->get_name() << "\n";
+        std::cout << "Start index: " << seg->get_start_index() << "\t";
+        std::cout << "End index: " << seg->get_end_index() << "\n";
+        std::cout << "Length: " << seg->get_length() << " m\n";
 
-    // double power = p::required_power(speed, 0, 200, mom);
-    // std::cout << "======================" << "\n";
-    // std::cout << "Power output required" << power << "\n";
+        if(seg->get_type() == SegmentType::Straight){
+            auto straight = static_cast<Straight*>(seg);
+            std::cout << "Type: Straight\n";
+            std::cout << "SM: " << straight->get_sm() << "\t";
+            std::cout << "SM start: " << straight->get_sm_start() << "\t";
+            std::cout << "SM end: " << straight->get_sm_end() << "\n";
+        }
+        else if(seg->get_type() == SegmentType::Corner){
+            auto corner = static_cast<Corner*>(seg);
+            std::cout << "Type: Corner\n";
+            std::cout << "Entry speed: " << corner->get_entry_speed() << " km/h\t";
+            std::cout << "Exit speed: " << corner->get_exit_speed() << " km/h\n";
+            std::cout << "Time: " << corner->get_time() << " s\t";
+            std::cout << "Energy: " << corner->get_energy() << " J\n";
 
-    // double initial_speed = 270.005;
-    // double final_speed = 270;
-    // double distance = 100;
-    // bool mom = false;
-    // bool sm_on = true;
+            auto trace = corner->get_speed_trace();
+            std::cout << "Speed trace (" << trace.size() << " points):\n";
+            for(const auto& point : trace){
+                std::cout << "  Speed: " << point.speed_kmh << " km/h\t";
+                std::cout << "Distance: " << point.distance_m << " m\n";
+            }
+        }
+        else{
+            std::cout << "Type: (unexpected -- FastCorner/SlowCorner shouldn't appear in the active circuit)\n";
+        }
+    }
 
-    // int partition_size = 50;
-
-    // cout << "final_speed: " << final_speed << '\n';
-    // for(int i = 0; i < partition_size; i++){
-    //     double speed = initial_speed - i * ((initial_speed - final_speed) / partition_size);
-
-    //     double ke_diff = p::kinetic_energy(final_speed) - p::kinetic_energy(speed);
-    //     double power = p::required_power(speed, ke_diff, distance, mom, sm_on);
-    //     double time = p::time_to_reach_velocity(final_speed, speed, power / 1000, sm_on);
-
-    //     cout << "Power: " << power << '\t';
-    //     cout << "Time: " << time << '\t';
-    //     cout << "Initial speed: " << speed << '\n';
-    // }
-
-    // std::vector<TaperedDeploymentResult> results = p::taper_table(mom, sm_on);
-
-    // for(const auto& i: results){
-    //     std::cout << "Speed: " << i.speed_kmh << "     ";
-    //     std::cout << "Time: " << i.time_s << "     ";
-    //     std::cout << "Distance: " << i.distance_m << "     ";
-    //     std::cout << "Energy: " << i.energy_J << "\n";
-    // }
-
-    // double query = 295;
-    // auto lambda_func = [](const TaperedDeploymentResult& field) {return field.speed_kmh;};
-
-    // std::optional<TaperedDeploymentResult> search_result = p::search_taper_table(mom, sm_on, query, lambda_func);
-
-    // TaperedDeploymentResult result = search_result.value();
-
-    // std::cout << "Speed: " << result.speed_kmh << "     ";
-    // std::cout << "Time: " << result.time_s << "     ";
-    // std::cout << "Distance: " << result.distance_m << "     ";
-    // std::cout << "Energy: " << result.energy_J << "\n";
-
-    // ================================================================
-    // Diagnostic sweep #1 (superseded -- refuted the "deeper into taper"
-    // hypothesis, kept for reference): for each straight, deploy over its
-    // full length from its real entry speed and see how far past the 290
-    // km/h taper threshold the final speed lands.
-    // StraightCheck straights[] = {
-    //     {"Hamilton",   243.0, 410.0,   25.0,  325.0},
-    //     {"Wellington", 257.0, 585.0,    0.0,  585.0},
-    //     {"Woodcote",   230.0, 690.0,    0.0,  590.0},
-    //     {"Hanger",     244.0, 813.5,   90.5,  813.5},
-    // };
-
-    // for(const auto& s : straights){
-    //     TaperedDeploymentResult r = p::energy_deployed_with_taper(s.entry_speed, s.length, s.sm_start, s.sm_end, false);
-
-    //     cout << s.name << ":\n";
-    //     cout << "  final speed_kmh: " << r.speed_kmh << "\t(gap above 290: " << r.speed_kmh - 290.0 << ")\n";
-    //     cout << "  time_s: " << r.time_s << "\n";
-    //     cout << "  distance_m: " << r.distance_m << " (requested " << s.length << ")\n";
-    //     cout << "  energy_J: " << r.energy_J << "\n\n";
-    // }
-// }
-
+    std::cout << "===========================================\n";
+    std::cout << "Total segments: " << track.size() << "\n";
+}
