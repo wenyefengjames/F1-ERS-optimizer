@@ -14,11 +14,11 @@ struct Option {
 
 // This struct holds the information of how the deployment and harvesting is actually executed
 struct ExecutionDetails{
-    double deployment_distance;
-    double deployment_rate;
-    double harvest_distance;
-    double harvest_rate;
-    double braking_distance;
+    double deployment_distance_m;
+    double deployment_rate_kW;
+    double harvest_distance_m;
+    double harvest_rate_kW;
+    double braking_distance_m;
 };
 
 class Optimizer{
@@ -39,11 +39,8 @@ class Optimizer{
         // std::vector<std::vector<ExecutionDetails>> execution_lookup_table;        // A lookup table for every Option's execution in each segment 
 
         // TO DO REMOVE THIS COMMENT AFTER TESTING
-        // std::vector<Option> option_table_straight(int seg_index, double initial_battery);
-        // std::vector<Option> option_table_slowcorner(int seg_index);
-        // std::vector<Option> option_table_fastcorner(int seg_index, double initial_battery);  
-        // std::vector<Option> best_option_for_bucket(double length, int seg_index, double exit_speed, 
-        //                                             double target_speed, double initial_battery);
+        // std::vector<Option> option_table_straight(int seg_index);
+        // std::vector<Option> option_table_corner(int seg_index); 
         // void initialize_option_table_lookup_table();
 
     public:

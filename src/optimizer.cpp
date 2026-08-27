@@ -15,8 +15,10 @@ Optimizer::Optimizer(bool race_mode, bool mom) :
     table.resize(size, -1.0);
     choice.resize(size, std::nullopt);
     execution_lookup_table.resize(circuit.size());
-
+    
+    std::cout << "Initializing option table" << '\n'; 
     initialize_option_table_lookup_table();
+    std::cout << "Finished" << '\n'; 
 }
 
 // i for index: which segment are we currently in
@@ -37,7 +39,9 @@ unsigned int Optimizer::index_helper(int i, double b, double e, double h){
 //        initial_battery, the starting battery that you want to give the car, in MJ
 //        ending_battery, how much leftover battery charge you need, in MJ
 //        harvest, the starting harvest that you want to give the car, should be 0 by default
-double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, double ending_battery, double harvest){
+double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, double ending_battery, double harvest){\
+    std::cout << "Starting optimizing loop" << '\n'; 
+
     Battery battery = Battery(initial_battery, harvest, race_mode, mom);
     double best_laptime = dp_algorithm(seg_index, battery, ending_battery);
     std::vector<Option> deployment_choice = path_reconstruction(seg_index, initial_battery, ending_battery, harvest);
@@ -65,10 +69,10 @@ double Optimizer::main_optimizing_loop(int seg_index, double initial_battery, do
 
 
         // Calculate sector times
-        if(seg_index >=0 && seg_index <= 6){
+        if(seg_index >=0 && seg_index <= 4){
             sector_1 += op.delta;
         }
-        else if (seg_index >=7 && seg_index <= 15){
+        else if (seg_index >= 5 && seg_index <= 13){
             sector_2 += op.delta;
         }
         else{
@@ -110,7 +114,7 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
         return 0;
     }
     // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
-    // std::cout << "current segment name: " <<  circuit.at(index)->get_name() << '\n';
+    std::cout << "current segment name: " <<  circuit.at(index)->get_name() << '\n';
     // std::cout << "prev segment name: " <<  circuit.prev(index)->get_name() << '\n';
     // std::cout << "next segment name: " <<  circuit.next(index)->get_name() << '\n';
 
@@ -236,7 +240,23 @@ std::vector<Option> Optimizer::segment_options(int seg_index){
 
 // TO DO
 std::vector<Option> Optimizer::option_table_corner(int seg_index){
+    Corner* current_corner = static_cast<Corner*>(circuit.at(seg_index));
+    std::vector<Option> output;
 
+    double harvestable_energy = current_corner->get_energy();
+    double time = current_corner->get_time();
+
+    int energy_harvested_buckets = 1 + static_cast<int>(std::floor(harvestable_energy / 1000000 * (1/bucket_size)));
+
+    // Option table generating loop, doesn't need to harvest all the energy given
+    for (int energy = 0; energy < energy_harvested_buckets; energy++){
+        const double energy_bucket_MJ = energy * bucket_size;
+
+        Option temp = {.deploy = 0, .harvest = energy_bucket_MJ, .delta = time};
+        output.push_back(temp);
+    }
+
+    return output;
 }
 
 // REMOVE END =============================================================================================================================
@@ -249,9 +269,22 @@ std::vector<Option> Optimizer::option_table_straight(int seg_index){
 
     auto prev_corner = static_cast<Corner*>(circuit.prev(seg_index));
     auto next_corner = static_cast<Corner*>(circuit.next(seg_index));
+    double starting_speed = 0;
+    double ending_speed = 0;
 
-    double starting_speed = prev_corner->get_exit_speed();
-    double ending_speed = next_corner->get_entry_speed();
+    if(circuit.prev(seg_index)->get_type() == SegmentType::Corner){
+        starting_speed = static_cast<Corner*>(circuit.prev(seg_index))->get_exit_speed();
+    }
+    else{
+        starting_speed = 250;
+    }
+
+    if(circuit.next(seg_index)->get_type() == SegmentType::Corner){
+        ending_speed = static_cast<Corner*>(circuit.prev(seg_index))->get_entry_speed();
+    }
+    else{
+        ending_speed = 250;
+    }
  
     bool sm = false;
     auto seg = static_cast<Straight*>(circuit.at(seg_index));
@@ -304,7 +337,7 @@ std::vector<Option> Optimizer::option_table_straight(int seg_index){
             // double energy_deployed = results.energy_J;
             const double speed = results.speed_kmh;
             const double time_deploying = results.time_s;
-            double energy_deployed = time_deploying * deploy_rate * 1000;
+            double energy_deployed = results.energy_J;
             
             // TESTING
             // std::cout << "energy_deployed: " << energy_deployed << "\t";
@@ -333,39 +366,31 @@ std::vector<Option> Optimizer::option_table_straight(int seg_index){
                 // The top speed is less than the starting speed for braking
                 if(speed < entry_speed) break;
 
-                // Harvest phase =============================================================
+                // Harvest phase ===============================================================================================
                 auto result_for_time_energy = p::time_to_reach_speed_over_distance(speed, entry_speed, harvest_dis, mom, sm);
-
                 if(!result_for_time_energy.has_value()) continue;
 
                 const double energy_harvested = result_for_time_energy.value().energy_J;
                 const double time_harvesting = result_for_time_energy.value().time_s;
-                const double harvest_rate = energy_harvested / time_harvesting;
+                const double harvest_rate = energy_harvested / time_harvesting * (1/1000);
 
                 // Harvesting rate exceeding the cap
-                if(harvest_rate > p::MGU_K * 1000 or harvest_rate < 0) continue;
+                if(harvest_rate > p::MGU_K || harvest_rate < 0) continue;
 
-                const double total_time = time_harvesting + time_deploying;
+                const double total_time = time_harvesting + time_deploying + braking_time;
+                energy_deployed = bucket_size * std::ceil(energy_deployed / 1000000 * (1/bucket_size));
+                int energy_harvested_buckets = 1 + static_cast<int>(std::floor((energy_harvested + braking_energy) / 1000000 * (1/bucket_size)));
 
-                Option temp = {.deploy = results.energy_J, .harvest = (energy_harvested + braking_energy), .delta = total_time};
-                ExecutionDetails exe = {.deployment_distance = deploy_dis, .deployment_rate = deploy_rate, .harvest_distance = harvest_dis,
-                                        .harvest_rate = harvest_rate, .braking_distance = braking_dis};
-                output.push_back(temp);
-                execution_table.push_back(exe);
+                // Option table generating loop, doesn't need to harvest all the energy given
+                for (int energy = 0; energy < energy_harvested_buckets; energy++){
+                    const double energy_bucket_MJ = energy * bucket_size;
 
-                // energy_deployed = bucket_size * std::ceil(energy_deployed / 1000000 * (1/bucket_size));
-                // int energy_harvested_buckets = 1 + static_cast<int>(std::floor((energy_harvested + braking_energy) / 1000000 * (1/bucket_size)));
-
-                // // Option table generating loop, doesn't need to harvest all the energy given
-                // for (int energy = 0; energy < energy_harvested_buckets; energy++){
-                //     const double energy_bucket_MJ = energy * bucket_size;
-
-                //     Option temp = {.deploy = energy_deployed, .harvest = energy_bucket_MJ, .delta = total_time};
-                //     ExecutionDetails exe = {.deployment_distance = deploy_dis, .deployment_rate = deploy_rate, .harvest_distance = harvest_dis,
-                //                             .harvest_rate = harvest_rate, .braking_distance = braking_dis};
-                //     output.push_back(temp);
-                //     execution_table.push_back(exe);
-                // }
+                    Option temp = {.deploy = energy_deployed, .harvest = energy_bucket_MJ, .delta = total_time};
+                    ExecutionDetails exe = {.deployment_distance_m = deploy_dis, .deployment_rate_kW = deploy_rate, .harvest_distance_m = harvest_dis,
+                                            .harvest_rate_kW = harvest_rate, .braking_distance_m = braking_dis};
+                    output.push_back(temp);
+                    execution_table.push_back(exe);
+                }
             }
         }
     }
