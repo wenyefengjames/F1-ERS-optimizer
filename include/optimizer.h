@@ -36,7 +36,7 @@ class Optimizer{
         std::vector<double> table;                      // Table for memoization
         std::vector<std::optional<Option>> choice;      // Table for path reconstruction
         std::vector<std::vector<Option>> option_table_lookup_table;     // A lookup table for every segment's option table
-        std::vector<std::vector<ExecutionDetails>> execution_lookup_table;        // A lookup table for every Option's execution in each segment 
+        // std::vector<std::vector<ExecutionDetails>> execution_lookup_table;        // A lookup table for every Option's execution in each segment 
 
         // TO DO REMOVE THIS COMMENT AFTER TESTING
         // std::vector<Option> option_table_straight(int seg_index, double initial_battery);
@@ -47,16 +47,10 @@ class Optimizer{
         // void initialize_option_table_lookup_table();
 
     public:
+        std::vector<std::vector<ExecutionDetails>> execution_lookup_table;        // A lookup table for every Option's execution in each segment 
         Track circuit = Track();
-        std::vector<Option> option_table_straight(int seg_index, double initial_battery);
-        std::vector<Option> option_table_straight_new(int seg_index);
-        std::vector<Option> option_table_slowcorner(int seg_index);
-        std::vector<Option> option_table_fastcorner(int seg_index, double initial_battery);  
+        std::vector<Option> option_table_straight(int seg_index);
         std::vector<Option> option_table_corner(int seg_index); 
-        std::vector<Option> best_option_for_bucket(double length, int seg_index, double exit_speed, 
-                                                    double target_speed, double initial_battery);
-        std::vector<Option> best_option_for_bucket_new(double length, int seg_index, double exit_speed, 
-                                                    double target_speed, double initial_battery);
         void initialize_option_table_lookup_table();
 
         // Helper function to flatten the 4D table into 1D by translating index positions
@@ -67,5 +61,5 @@ class Optimizer{
         double main_optimizing_loop(int seg_index, double initial_battery, double ending_battery, double harvest);
         double dp_algorithm(int index, Battery battery, double ending_battery);
         std::vector<Option> path_reconstruction(int starting_index, double battery, double ending_battery, double harvest);
-        std::vector<Option> segment_options(int seg_index, double initial_battery);
+        std::vector<Option> segment_options(int seg_index);
 };
