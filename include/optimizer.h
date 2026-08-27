@@ -25,9 +25,9 @@ class Optimizer{
 
     private:
         const int partition_size = 10;          // The length that distance of segment needs to be divided by
-        const double bucket_size = 0.05;        // The size of energy bucket being used in each step, in MJ
+        const double bucket_size = 0.1;        // The size of energy bucket being used in each step, in MJ
         const int battery_buckets = 4.0/bucket_size + 1;    // Number of buckets that the battery is divided into
-        const double deployment_step_size = 25; // in kW, how much increase for each step of deployment
+        const double deployment_step_size = 50; // in kW, how much increase for each step of deployment
         bool race_mode;
         bool mom;
         // Track circuit = Track(); // TO DO REMOVE THIS COMMENT AFTER TESTING

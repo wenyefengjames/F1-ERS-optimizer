@@ -2,8 +2,9 @@
 #include "../include/optimizer.h"
 #include <string>
 
+// Temporarily disabled -- diagnostic main() below is investigating why the DP is slow.
 int main() {
-    
+
     std::string mode_input;
     std::string mom_input;
     bool race_mode = false;
@@ -56,82 +57,41 @@ int main() {
     return 0;
 }
 
+// // Diagnostic: dump every segment's option table (sampled every 10th entry once a table
+// // gets large) plus a per-segment and grand total count, to see how big the DP's actual
+// // search space is -- state-space size is the first thing to check when the cached
+// // tables build fast but dp_algorithm() itself is slow.
 // int main(){
 //     bool race_mode = false;
 //     bool mom = true;
 //     Optimizer ems(race_mode, mom);
 
-//     double time = 0;
+//     long long total_options = 0;
 
-//     // for(int i = 0; i < ems.circuit.size(); i++){
+//     for(int i = 0; i < ems.circuit.size(); i++){
+//         std::vector<Option> table = ems.segment_options(i);
 
-//     //     int count = 1;
-//     //     std::vector<Option> table = ems.segment_options(i, 3);
-//     //     std::cout << "Segment name: " << ems.circuit.at(i)->get_name() << '\n';
-//     //     std::cout << "==================" << '\n';
+//         std::cout << "===========================================\n";
+//         std::cout << "Segment " << i << ": " << ems.circuit.at(i)->get_name() << "\n";
+//         std::cout << "-------------------------------------------\n";
 
-//         // All corners
-//         // if(i != 0 && i != 6 && i != 9 && i != 11 && i != 18 && i != 16){
-//         //     std::vector<Option> table = ems.segment_options(i, 3);
-//         //     std::cout << "Segment name: " << ems.circuit.at(i)->get_name() << '\n';
-//         //     std::cout << "==================" << '\n';
-//         //     for(const Option& row : table){
-//         //         std::cout << "Deploy: " << row.deploy << '\t';
-//         //         std::cout << "Harvest: " << row.harvest << '\t';
-//         //         std::cout << "delta: " << row.delta << '\n';
-//         //     }
+//         // Print every entry for small tables; sample every 10th once it gets large,
+//         // so a table with thousands of options doesn't flood the console.
+//         size_t step = (table.size() > 20) ? 10 : 1;
+
+//         // for(size_t j = 0; j < table.size(); j += step){
+//         //     const Option& op = table[j];
+//         //     std::cout << "  [" << j << "] Deploy: " << op.deploy << " MJ\t";
+//         //     std::cout << "Harvest: " << op.harvest << " MJ\t";
+//         //     std::cout << "Delta: " << op.delta << " s\n";
 //         // }
 
-//         // All Straghts
-//         // if(i == 0 || i == 6 || i == 9 || i == 11 || i == 18 || i == 16){
-//         //     std::cout << "Segment name: " << ems.circuit.at(i)->get_name() << '\n';
-//         //     std::cout << "==================" << '\n';
-//         //     for(const Option& row : table){
-
-//         //         if(count % 6 == 0){
-//         //             std::cout << "Deploy: " << row.deploy << '\t';
-//         //             std::cout << "Harvest: " << row.harvest << '\t';
-//         //             std::cout << "delta: " << row.delta << '\n';
-//         //             count = 1;
-//         //         }
-//         //         else count += 1;
-//         //     }
-//         // }
-
-
-//         // std::cout << "Longest time: " << table[0].delta << '\n';
-//         // time += table[0].delta;
-//     // }
-
-//     double initial_bat = 3;
-    
-//     // std::vector<Option> straight_table = ems.option_table_straight(0, initial_bat);
-//     std::vector<Option> fast_corner_table = ems.option_table_fastcorner(5, initial_bat);
-//     // std::vector<Option> slow_corner_table = ems.option_table_slowcorner(4);
-
-//     // std::cout << "Straight table" << '\n';
-
-//     // for(const Option& row : straight_table){
-//     //     std::cout << "Deploy: " << row.deploy << '\t';
-//     //     std::cout << "Harvest: " << row.harvest << '\t';
-//     //     std::cout << "delta: " << row.delta << '\n';
-//     // }
-
-//     std::cout << "Fast corner table" << '\n';
-
-//     for(const Option& row : fast_corner_table){
-//         std::cout << "Deploy: " << row.deploy << '\t';
-//         std::cout << "Harvest: " << row.harvest << '\t';
-//         std::cout << "delta: " << row.delta << '\n';
+//         std::cout << "Total options for this segment: " << table.size() << "\n";
+//         total_options += static_cast<long long>(table.size());
 //     }
 
-//     // std::cout << "Slow corner table" << '\n';
-    
-//     // for(const Option& row : slow_corner_table){
-//     //     std::cout << "Deploy: " << row.deploy << '\t';
-//     //     std::cout << "Harvest: " << row.harvest << '\t';
-//     //     std::cout << "delta: " << row.delta << '\n';
-//     // }
+//     std::cout << "===========================================\n";
+//     std::cout << "Total options across all segments: " << total_options << "\n";
 
 //     return 0;
 // }
