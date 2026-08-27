@@ -11,6 +11,10 @@ struct TrackDataPoint{
 namespace track_gen{
     inline const std::string TRACK_CSV_FOLDER = "data/track-data/";
 
+    const std::vector<TrackDataPoint> read_csv(const std::string& file_path);
+    const std::vector<double> compute_curvature(const std::vector<TrackDataPoint>& track_data);
+    const std::vector<double> compute_vmax(const std::vector<double>& curvature);
+
     // Generate a QSS simulation for the track (TUMFTM Silverstone.csv data source)
     // Inputs: file_name, the file location within /data/track-data/
     // Outputs: a vector of speed as a result of the simulation

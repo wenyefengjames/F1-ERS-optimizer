@@ -271,7 +271,7 @@ namespace track_gen{
 
             // Change of label means the type of segment changed
             if(labels[i - 1].second != labels[i].second){
-                output.push_back({{start_index, i}, labels[i - 1].second});
+                output.push_back({{start_index, i - 1}, labels[i - 1].second});
                 start_index = i;
             }
         }
