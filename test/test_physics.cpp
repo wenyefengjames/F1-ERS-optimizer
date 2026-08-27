@@ -343,9 +343,9 @@ INSTANTIATE_TEST_SUITE_P(VariousCases, CheckDragFormula, ::testing::Values(
     DragCheck{300, false, 6167.5347},
     DragCheck{0, true, 0},
     DragCheck{-0.5, true, -1},
-    DragCheck{100, true, 479.6971},
-    DragCheck{200, true, 1918.7886},
-    DragCheck{300, true, 4317.2743}
+    DragCheck{100, true, 541.3725},
+    DragCheck{200, true, 2165.4900},
+    DragCheck{300, true, 4872.3524}
 ));
 
 
@@ -369,7 +369,7 @@ struct DeployTaperCheck {double speed_kmh; bool mom; double distance, output_kmh
 TEST(EnergyDeployedWithTaperProperties, MatchesUntaperedBelowThreshold) {
     double vi = 100.0, distance = 5.0;
     bool sm_on = false;
-    auto result = p::energy_deployed_with_taper(vi, distance, -1, -1, false);
+    auto result = p::energy_deployed_with_taper(vi, distance, p::MGU_K, -1, -1, false);
 
     double untapered_energy = p::work_done_with_drag(p::MGU_K + p::ICE, vi, distance, sm_on);
     double untapered_speed = p::reverse_ke(vi, untapered_energy);
@@ -382,7 +382,7 @@ TEST(EnergyDeployedWithTaperProperties, MatchesUntaperedBelowThreshold) {
 TEST(EnergyDeployedWithTaperProperties, TaperReducesFinalSpeedAboveThreshold) {
     double vi = 280.0, distance = 300.0;
     bool sm_on = false;
-    auto result = p::energy_deployed_with_taper(vi, distance, -1, -1, false);
+    auto result = p::energy_deployed_with_taper(vi, distance, p::MGU_K, -1, -1, false);
 
     double untapered_energy = p::work_done_with_drag(p::MGU_K + p::ICE, vi, distance, sm_on);
     double untapered_speed = p::reverse_ke(vi, untapered_energy);
@@ -393,7 +393,7 @@ TEST(EnergyDeployedWithTaperProperties, TaperReducesFinalSpeedAboveThreshold) {
 // Checks that the distance covered is at least the requested distance
 TEST(EnergyDeployedWithTaperProperties, CoversAtLeastRequestedDistance) {
     double vi = 200.0, distance = 500.0;
-    auto result = p::energy_deployed_with_taper(vi, distance, -1, -1, false);
+    auto result = p::energy_deployed_with_taper(vi, distance, p::MGU_K, -1, -1, false);
 
     EXPECT_GE(result.distance_m, distance);
     EXPECT_LT(result.distance_m, distance + (400.0 / 3.6) * p::DELTA_T);
@@ -406,8 +406,8 @@ TEST(EnergyDeployedWithTaperProperties, CoversAtLeastRequestedDistance) {
 // between the two runs.
 TEST(EnergyDeployedWithTaperProperties, SmWindowCoveringWholeRunBeatsNoSm) {
     double vi = 200.0, distance = 300.0;
-    auto sm_result = p::energy_deployed_with_taper(vi, distance, 0.0, distance, false);
-    auto no_sm_result = p::energy_deployed_with_taper(vi, distance, -1, -1, false);
+    auto sm_result = p::energy_deployed_with_taper(vi, distance, p::MGU_K, 0.0, distance, false);
+    auto no_sm_result = p::energy_deployed_with_taper(vi, distance, p::MGU_K, -1, -1, false);
 
     EXPECT_GT(sm_result.speed_kmh, no_sm_result.speed_kmh);
 }
@@ -424,7 +424,7 @@ TEST_P(CheckZeroDistanceEdgeCase, ReturnsUnchangedStartingState) {
     double vi = 200.0;
     double sm_start = c.sm_on ? 0.0 : -1.0;
     double sm_end = c.sm_on ? 100.0 : -1.0;
-    auto result = p::energy_deployed_with_taper(vi, 0.0, sm_start, sm_end, c.mom);
+    auto result = p::energy_deployed_with_taper(vi, 0.0, p::MGU_K, sm_start, sm_end, c.mom);
 
     EXPECT_DOUBLE_EQ(result.speed_kmh, vi);
     EXPECT_DOUBLE_EQ(result.energy_J, 0.0);
@@ -443,7 +443,7 @@ INSTANTIATE_TEST_SUITE_P(AllModeCombinations, CheckZeroDistanceEdgeCase, ::testi
 // drag_coeff -- simple mode switch, hand-computable exactly.
 // =========================================================================
 TEST(DragCoeffTest, MatchesExpectedValuesForBothModes) {
-    EXPECT_NEAR(p::drag_coeff(true), 0.6216875, 1e-7);   // straight mode: 0.5*1.225*1.45*0.7
+    EXPECT_NEAR(p::drag_coeff(true), 0.70161875, 1e-7);  // straight mode: 0.5*1.225*1.45*0.79
     EXPECT_NEAR(p::drag_coeff(false), 0.888125, 1e-7);   // corner mode:   0.5*1.225*1.45*1.0
 }
 
