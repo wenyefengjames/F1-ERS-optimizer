@@ -114,7 +114,7 @@ double Optimizer::dp_algorithm(int index, Battery battery, double ending_battery
         return 0;
     }
     // TESTING: SHOULD BE REMOVED AFTER TESTING IS COMPLETE
-    std::cout << "current segment name: " <<  circuit.at(index)->get_name() << '\n';
+    // std::cout << "current segment name: " <<  circuit.at(index)->get_name() << '\n';
     // std::cout << "prev segment name: " <<  circuit.prev(index)->get_name() << '\n';
     // std::cout << "next segment name: " <<  circuit.next(index)->get_name() << '\n';
 

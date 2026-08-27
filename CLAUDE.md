@@ -160,12 +160,17 @@ Track model:
 - [ ] Use Google Test to ensure new implementation are correct.
 
 Optimizer:
-- [ ] Use acceleration and braking physics functions to calculate things instead of just the assumed 5.5g
-- [ ] Redo straight's option table to add braking phase into it
+- [x] Use acceleration and braking physics functions to calculate things instead of just the assumed 5.5g
+- [x] Redo straight's option table to add braking phase into it
 - [ ] Add option table for SegmentType of Corner
 - [ ] Test both individually
 - [ ] Remove fast and slow corners option tables
 - [ ] produce speed trace and energy deployment 
+
+# Limitations
+When braking or accelerating, because the distance in optimizer doesn't line up with the values of curvature calculated, therefore the values calculated for accelerating and braking are both based on a fixed curvature value, instead of being updated live. 
+
+The braking force is huge at extreme speed, E.g. 360kmh. It can reach to 10g of braking force. Where as in real life it is limited to 6g. This is caused because that in real life, tyre friction varies depends on load. Therefore I will cap the deceleration to a maximum of 6g right now. Because that is sufficient for the current model. 
 
 
 
