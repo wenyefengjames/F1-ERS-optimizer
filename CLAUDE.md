@@ -157,15 +157,15 @@ Track model:
 - [x] Change track generation to automate this
 - [x] Grip limited should have speed trace, length, entry and exit speed, time spent, energy recovered.
 - [x] Grip not limited should have length, start and end of straight mode (this can only be hand computed because there are no data about it)
-- [ ] Use Google Test to ensure new implementation are correct.
+- [x] Use Google Test to ensure new implementation are correct.
 
 Optimizer:
 - [x] Use acceleration and braking physics functions to calculate things instead of just the assumed 5.5g
 - [x] Redo straight's option table to add braking phase into it
-- [ ] Add option table for SegmentType of Corner
-- [ ] Test both individually
-- [ ] Remove fast and slow corners option tables
-- [ ] produce speed trace and energy deployment 
+- [x] Add option table for SegmentType of Corner
+- [x] Test both individually
+- [x] Remove fast and slow corners option tables
+- [x] produce speed trace and energy deployment 
 
 # Limitations
 When braking or accelerating, because the distance in optimizer doesn't line up with the values of curvature calculated, therefore the values calculated for accelerating and braking are both based on a fixed curvature value, instead of being updated live. 
@@ -174,7 +174,7 @@ The braking force is huge at extreme speed, E.g. 360kmh. It can reach to 10g of 
 
 
 
-## Fourth Prototype: (Deadline: 21st of August)
+## Fourth Prototype: (Future implementations)
 What the third prototype should look like:
 - Refined physics models, turbulant air awareness, which impacts laptime and downforce
 - Add a new category for Segment to represent corners like T5, T17 and T18. 
@@ -203,6 +203,6 @@ Limitations:
 - [ ] Be aware that Hamilton Straight starts 50m before the S/F line of the next lap. There is 50m more for the car to travel after finishing the last corner (T18) 
 - [ ] When deploying energy on the straight, change from a fixed max deployment of 350kW from MGU-K, to trying different values of deployment, for now it can be a fixed step-size of 25kW or 50kW (After the optimization of caching segment tables is done, this adds a lot of computation power)
 
-## Fifth Prototype:
+## Fifth Prototype: (Future implementations)
 - Implement different models to represent the downforce and aero package of cars from different teams (Because, if its a slower car in front, we could deploy less to get pass, which saves battery)
 - Implement different tire models that gives different grip, which impacts laptime
