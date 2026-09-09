@@ -2,7 +2,9 @@
 #include "../include/optimizer.h"
 #include <string>
 
-// Temporarily disabled -- diagnostic main() below is investigating why the DP is slow.
+// Temporarily disabled -- diagnostic main() below investigates why Hamilton
+// Straight's chosen option reports minimal MGU-K deployment.
+
 int main() {
 
     std::string mode_input;
@@ -42,12 +44,16 @@ int main() {
 
         Optimizer ems(race_mode, mom);
         laptime =  ems.main_optimizing_loop(seg_index, start_bat, end_bat, harvest);
+        // NEW: writes the winning path's reconstructed speed trace for plotting against Kimi's lap.
+        ems.write_speed_trace_csv("battery_deployment_silverstone.csv", seg_index, start_bat, end_bat, harvest);
 
     }
     else{
         race_mode = false;
         Optimizer ems(race_mode, mom);
         laptime = ems.main_optimizing_loop(0, 4.0, 0, 0);
+        // NEW: writes the winning path's reconstructed speed trace for plotting against Kimi's lap.
+        ems.write_speed_trace_csv("battery_deployment_silverstone.csv", 0, 4.0, 0, 0);
     }
 
     // laptime = ems.main_optimizing_loop(0, 4.0, 0, 0);
@@ -57,41 +63,46 @@ int main() {
     return 0;
 }
 
-// // Diagnostic: dump every segment's option table (sampled every 10th entry once a table
-// // gets large) plus a per-segment and grand total count, to see how big the DP's actual
-// // search space is -- state-space size is the first thing to check when the cached
-// // tables build fast but dp_algorithm() itself is slow.
+
+// Diagnostic: dump every option generated for Hamilton Straight (segment 0),
+// paired with its ExecutionDetails, to check whether the chosen option's
+// minimal MGU-K deploy figure is explained by a short deployment distance
+// with the ICE baseline carrying most of the acceleration.
 // int main(){
 //     bool race_mode = false;
 //     bool mom = true;
 //     Optimizer ems(race_mode, mom);
 
-//     long long total_options = 0;
+//     const int seg_index = 0;
+//     Segment* seg = ems.circuit.at(seg_index);
+//     Corner* next_corner = static_cast<Corner*>(ems.circuit.next(seg_index));
 
-//     for(int i = 0; i < ems.circuit.size(); i++){
-//         std::vector<Option> table = ems.segment_options(i);
+//     std::vector<Option> options = ems.option_table_straight(seg_index);
+//     const std::vector<ExecutionDetails>& executions = ems.execution_lookup_table[seg_index];
 
-//         std::cout << "===========================================\n";
-//         std::cout << "Segment " << i << ": " << ems.circuit.at(i)->get_name() << "\n";
-//         std::cout << "-------------------------------------------\n";
+//     std::cout << "Total options generated: " << options.size() << "\n";
+//     std::cout << "===========================================\n";
 
-//         // Print every entry for small tables; sample every 10th once it gets large,
-//         // so a table with thousands of options doesn't flood the console.
-//         size_t step = (table.size() > 20) ? 10 : 1;
+//     for(size_t j = 0; j < options.size(); j++){
+//         const Option& op = options[j];
+//         const ExecutionDetails& exe = executions[j];
 
-//         // for(size_t j = 0; j < table.size(); j += step){
-//         //     const Option& op = table[j];
-//         //     std::cout << "  [" << j << "] Deploy: " << op.deploy << " MJ\t";
-//         //     std::cout << "Harvest: " << op.harvest << " MJ\t";
-//         //     std::cout << "Delta: " << op.delta << " s\n";
-//         // }
-
-//         std::cout << "Total options for this segment: " << table.size() << "\n";
-//         total_options += static_cast<long long>(table.size());
+//         std::cout << "[" << j << "] "
+//                   << "Deploy: " << op.deploy << "MJ\t"
+//                   << "Harvest: " << op.harvest << "MJ\t"
+//                   << "Delta: " << op.delta << "s"
+//                   << " || DeployDis: " << exe.deployment_distance_m << "m"
+//                   << " @ " << exe.deployment_rate_kW << "kW\t"
+//                   << "HarvestDis: " << exe.harvest_distance_m << "m"
+//                   << " @ " << exe.harvest_rate_kW << "kW\t"
+//                   << "BrakingDis: " << exe.braking_distance_m << "m\n";
 //     }
 
 //     std::cout << "===========================================\n";
-//     std::cout << "Total options across all segments: " << total_options << "\n";
+//     std::cout << "Segment: " << seg->get_name() << "\n";
+//     std::cout << "Length: " << seg->get_length() << " m\n";
+//     std::cout << "Starting speed (hardcoded fallback, prev segment is a Straight): 245 km/h\n";
+//     std::cout << "Ending speed (T1-2 entry speed, real): " << next_corner->get_entry_speed() << " km/h\n";
 
 //     return 0;
 // }

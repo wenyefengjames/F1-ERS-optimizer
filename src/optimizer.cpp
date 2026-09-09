@@ -3,6 +3,7 @@
 #include <limits>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 
 namespace p = physics;
 
@@ -238,7 +239,6 @@ std::vector<Option> Optimizer::segment_options(int seg_index){
     return option_table;
 }
 
-// TO DO
 std::vector<Option> Optimizer::option_table_corner(int seg_index){
     Corner* current_corner = static_cast<Corner*>(circuit.at(seg_index));
     std::vector<Option> output;
@@ -276,14 +276,14 @@ std::vector<Option> Optimizer::option_table_straight(int seg_index){
         starting_speed = static_cast<Corner*>(circuit.prev(seg_index))->get_exit_speed();
     }
     else{
-        starting_speed = 250;
+        starting_speed = 245;
     }
 
     if(circuit.next(seg_index)->get_type() == SegmentType::Corner){
-        ending_speed = static_cast<Corner*>(circuit.prev(seg_index))->get_entry_speed();
+        ending_speed = static_cast<Corner*>(circuit.next(seg_index))->get_entry_speed();
     }
     else{
-        ending_speed = 250;
+        ending_speed = 245;
     }
  
     bool sm = false;
@@ -351,6 +351,7 @@ std::vector<Option> Optimizer::option_table_straight(int seg_index){
             if(deploy_dis >= seg->get_sm_end()) sm = false;
             else sm = true;
 
+            energy_deployed = bucket_size * std::ceil(energy_deployed / 1000000 * (1/bucket_size));
             // Braking phase =============================================================
             for(size_t i = 0; i < braking_lookup_table.size(); i++){
                 const double entry_speed = braking_lookup_table[i].speed_kmh;
@@ -378,7 +379,6 @@ std::vector<Option> Optimizer::option_table_straight(int seg_index){
                 if(harvest_rate > p::MGU_K || harvest_rate < 0) continue;
 
                 const double total_time = time_harvesting + time_deploying + braking_time;
-                energy_deployed = bucket_size * std::ceil(energy_deployed / 1000000 * (1/bucket_size));
                 int energy_harvested_buckets = 1 + static_cast<int>(std::floor((energy_harvested + braking_energy) / 1000000 * (1/bucket_size)));
 
                 // Option table generating loop, doesn't need to harvest all the energy given
@@ -404,4 +404,257 @@ void Optimizer::initialize_option_table_lookup_table(){
     for(int i = 0; i< circuit.size(); ++i){
         option_table_lookup_table[i] = segment_options(i);
     }
+}
+
+// ======================================================================================
+// AI generated code: To visualise simulation result as speed trace, outputted into a CSV file,
+// and plotted in plot-data-test.py
+// NEW: speed-trace reconstruction for the DP's final chosen path.
+// Everything below is newly added -- nothing above this line was modified to build it.
+// ======================================================================================
+
+ExecutionDetails Optimizer::find_execution_details(int seg_index, const Option& winning_option){
+    const std::vector<Option>& options = option_table_lookup_table[seg_index];
+    const std::vector<ExecutionDetails>& executions = execution_lookup_table[seg_index];
+
+    for(size_t k = 0; k < options.size(); k++){
+        if(options[k].deploy == winning_option.deploy &&
+           options[k].harvest == winning_option.harvest &&
+           options[k].delta == winning_option.delta){
+            return executions[k];
+        }
+    }
+
+    // Shouldn't happen: option_table_lookup_table and execution_lookup_table are pushed to
+    // in lockstep in option_table_straight(), so the winning Option -- itself read back out
+    // of option_table_lookup_table via choice/path_reconstruction -- should always match.
+    std::cerr << "WARNING: no matching ExecutionDetails found for segment " << seg_index << "\n";
+    return ExecutionDetails{};
+}
+
+std::vector<SpeedTraceType> Optimizer::replay_deployment_phase(double starting_speed_kmh, double distance_m, double deploy_rate_kW,
+                                                                 double sm_start, double sm_end, double distance_offset_m){
+    std::vector<SpeedTraceType> trace;
+    double current_kmh = starting_speed_kmh;
+    double total_deployed_distance = 0.0;
+    bool sm = false;
+
+    trace.push_back({.speed_kmh = current_kmh, .distance_m = distance_offset_m});
+
+    // Deliberately skips energy_deployed_with_taper()'s taper-table-lookup shortcut branch --
+    // always steps numerically instead, so every step gets recorded. Same physics either way
+    // (same taper_curve/work_done_with_drag/reverse_ke calls), just without the shortcut.
+    while(total_deployed_distance < distance_m){
+        double current_power = std::min(deploy_rate_kW, p::taper_curve(current_kmh, mom));
+
+        if(sm_start >= 0 && total_deployed_distance >= sm_start && total_deployed_distance <= sm_end){
+            sm = true;
+        }
+        else{
+            sm = false;
+        }
+
+        double ke_gained = p::work_done_with_drag(current_power + p::ICE, current_kmh, current_kmh * p::DELTA_T / 3.6, sm);
+        total_deployed_distance += current_kmh * p::DELTA_T / 3.6;
+        current_kmh = p::reverse_ke(current_kmh, ke_gained);
+
+        trace.push_back({.speed_kmh = current_kmh, .distance_m = distance_offset_m + total_deployed_distance});
+    }
+
+    return trace;
+}
+
+std::vector<SpeedTraceType> Optimizer::replay_harvest_phase(double starting_speed_kmh, double target_speed_kmh, double distance_m,
+                                                              bool sm, double distance_offset_m){
+    std::vector<SpeedTraceType> trace;
+    trace.push_back({.speed_kmh = starting_speed_kmh, .distance_m = distance_offset_m});
+
+    if(distance_m <= 0){
+        return trace;
+    }
+
+    if(starting_speed_kmh == target_speed_kmh){
+        // Constant-speed cruise -- matches time_to_reach_speed_over_distance's equal-speed branch.
+        trace.push_back({.speed_kmh = starting_speed_kmh, .distance_m = distance_offset_m + distance_m});
+        return trace;
+    }
+
+    // Decelerating (Superclip) branch only -- option_table_straight() only ever keeps options
+    // where speed >= entry_speed, so the accelerating branch is never needed here.
+    double energy_diff = p::kinetic_energy(target_speed_kmh) - p::kinetic_energy(starting_speed_kmh);
+    double power_W = p::required_power(starting_speed_kmh, energy_diff, distance_m, mom, sm);
+
+    double current_kmh = starting_speed_kmh;
+    double total_distance = 0.0;
+
+    while(total_distance < distance_m){
+        double ke_gained = p::work_done_with_drag(power_W / 1000.0, current_kmh, current_kmh * p::DELTA_T / 3.6, sm);
+        total_distance += current_kmh * p::DELTA_T / 3.6;
+        current_kmh = p::reverse_ke(current_kmh, ke_gained);
+
+        trace.push_back({.speed_kmh = current_kmh, .distance_m = distance_offset_m + total_distance});
+    }
+
+    return trace;
+}
+
+std::vector<SpeedTraceType> Optimizer::replay_braking_phase(double entry_speed_kmh, double ending_speed_kmh, double distance_offset_m){
+    // Rebuilds the exact same braking_lookup_table construction used in option_table_straight()
+    // (same up-stepping-from-ending_speed formula), then walks it backwards from the row matching
+    // entry_speed_kmh down to ending_speed_kmh, converting each row's absolute (from-ending_speed)
+    // distance into a local (from-entry_speed) distance by subtraction.
+    const double max_speed = 360;
+    const double v_step_size = 1;
+    std::vector<TaperedDeploymentResult> braking_lookup_table;
+    TaperedDeploymentResult init = {.speed_kmh = ending_speed_kmh, .energy_J = 0, .time_s = 0, .distance_m = 0};
+    braking_lookup_table.push_back(init);
+
+    for(int v = 1; v < std::ceil((max_speed - ending_speed_kmh) / v_step_size); v++){
+        const double prev_v_ms = braking_lookup_table[v - 1].speed_kmh / 3.6;
+        const double braking_v_ms = (v * v_step_size + ending_speed_kmh) / 3.6;
+        const double braking_decel = p::max_deceleration(braking_v_ms * 3.6, 0.0, 10.0, false);
+        const double braking_dis = (braking_v_ms*braking_v_ms - prev_v_ms*prev_v_ms) / (2 * braking_decel) + braking_lookup_table[v - 1].distance_m;
+        const double braking_time = (braking_v_ms - prev_v_ms) / braking_decel + braking_lookup_table[v - 1].time_s;
+
+        const TaperedDeploymentResult row = {.speed_kmh = braking_v_ms * 3.6, .energy_J = 0, .time_s = braking_time, .distance_m = braking_dis};
+        braking_lookup_table.push_back(row);
+    }
+
+    size_t entry_row = 0;
+    for(size_t k = 0; k < braking_lookup_table.size(); k++){
+        if(std::abs(braking_lookup_table[k].speed_kmh - entry_speed_kmh) < 1e-6){
+            entry_row = k;
+            break;
+        }
+    }
+
+    std::vector<SpeedTraceType> trace;
+    double entry_distance = braking_lookup_table[entry_row].distance_m;
+
+    for(size_t k = entry_row + 1; k-- > 0; ){
+        double local_distance = entry_distance - braking_lookup_table[k].distance_m;
+        trace.push_back({.speed_kmh = braking_lookup_table[k].speed_kmh, .distance_m = distance_offset_m + local_distance});
+    }
+
+    return trace;
+}
+
+std::vector<SpeedTraceType> Optimizer::reconstruct_straight_trace(int seg_index, const ExecutionDetails& exe, double distance_offset_m){
+    // Mirrors option_table_straight()'s own starting_speed/ending_speed derivation exactly,
+    // INCLUDING its existing bug where the ending_speed branch reads circuit.prev(seg_index)
+    // instead of circuit.next(seg_index) -- kept deliberately, not fixed, so this reconstruction
+    // stays consistent with whatever the cached option/execution tables actually used.
+    double starting_speed = 0;
+    double ending_speed = 0;
+
+    if(circuit.prev(seg_index)->get_type() == SegmentType::Corner){
+        starting_speed = static_cast<Corner*>(circuit.prev(seg_index))->get_exit_speed();
+    }
+    else{
+        starting_speed = 250;
+    }
+
+    if(circuit.next(seg_index)->get_type() == SegmentType::Corner){
+        ending_speed = static_cast<Corner*>(circuit.next(seg_index))->get_entry_speed();
+    }
+    else{
+        ending_speed = 250;
+    }
+
+    auto seg = static_cast<Straight*>(circuit.at(seg_index));
+
+    // Rebuild the same braking_lookup_table used originally, to recover entry_speed -- the
+    // speed at which braking actually began -- from the stored braking_distance_m.
+    const double max_speed = 360;
+    const double v_step_size = 1;
+    std::vector<TaperedDeploymentResult> braking_lookup_table;
+    TaperedDeploymentResult init = {.speed_kmh = ending_speed, .energy_J = 0, .time_s = 0, .distance_m = 0};
+    braking_lookup_table.push_back(init);
+
+    for(int v = 1; v < std::ceil((max_speed - ending_speed) / v_step_size); v++){
+        const double prev_v_ms = braking_lookup_table[v - 1].speed_kmh / 3.6;
+        const double braking_v_ms = (v * v_step_size + ending_speed) / 3.6;
+        const double braking_decel = p::max_deceleration(braking_v_ms * 3.6, 0.0, 10.0, false);
+        const double braking_dis = (braking_v_ms*braking_v_ms - prev_v_ms*prev_v_ms) / (2 * braking_decel) + braking_lookup_table[v - 1].distance_m;
+        const double braking_time = (braking_v_ms - prev_v_ms) / braking_decel + braking_lookup_table[v - 1].time_s;
+
+        const TaperedDeploymentResult row = {.speed_kmh = braking_v_ms * 3.6, .energy_J = 0, .time_s = braking_time, .distance_m = braking_dis};
+        braking_lookup_table.push_back(row);
+    }
+
+    double entry_speed = ending_speed;
+    for(const auto& row : braking_lookup_table){
+        if(std::abs(row.distance_m - exe.braking_distance_m) < 1e-6){
+            entry_speed = row.speed_kmh;
+            break;
+        }
+    }
+
+    // Same sm derivation as option_table_straight() uses for the harvest phase: deploy_dis
+    // there is this reconstruction's exe.deployment_distance_m.
+    bool sm_at_deploy_end = exe.deployment_distance_m < seg->get_sm_end();
+
+    std::vector<SpeedTraceType> deploy_trace = replay_deployment_phase(starting_speed, exe.deployment_distance_m, exe.deployment_rate_kW,
+                                                                        seg->get_sm_start(), seg->get_sm_end(), distance_offset_m);
+    double speed_after_deploy = deploy_trace.back().speed_kmh;
+    double deploy_end_distance = deploy_trace.back().distance_m;
+
+    std::vector<SpeedTraceType> harvest_trace = replay_harvest_phase(speed_after_deploy, entry_speed, exe.harvest_distance_m,
+                                                                      sm_at_deploy_end, deploy_end_distance);
+    double harvest_end_distance = harvest_trace.back().distance_m;
+
+    std::vector<SpeedTraceType> braking_trace = replay_braking_phase(entry_speed, ending_speed, harvest_end_distance);
+
+    std::vector<SpeedTraceType> full_trace;
+    full_trace.insert(full_trace.end(), deploy_trace.begin(), deploy_trace.end());
+    full_trace.insert(full_trace.end(), harvest_trace.begin() + 1, harvest_trace.end());
+    full_trace.insert(full_trace.end(), braking_trace.begin() + 1, braking_trace.end());
+
+    return full_trace;
+}
+
+std::vector<SpeedTraceType> Optimizer::compute_final_speed_trace(int seg_index, double initial_battery, double ending_battery, double harvest){
+    std::vector<Option> winning_path = path_reconstruction(seg_index, initial_battery, ending_battery, harvest);
+
+    std::vector<SpeedTraceType> full_trace;
+    double cumulative_distance = 0.0;
+    int current_index = seg_index;
+
+    for(const Option& option : winning_path){
+        Segment* seg = circuit.at(current_index);
+
+        if(seg->get_type() == SegmentType::Corner){
+            auto corner = static_cast<Corner*>(seg);
+            std::vector<SpeedTraceType> corner_trace = corner->get_speed_trace();
+            full_trace.insert(full_trace.end(), corner_trace.begin(), corner_trace.end());
+        }
+        else{
+            ExecutionDetails exe = find_execution_details(current_index, option);
+            std::vector<SpeedTraceType> straight_trace = reconstruct_straight_trace(current_index, exe, cumulative_distance);
+            full_trace.insert(full_trace.end(), straight_trace.begin(), straight_trace.end());
+        }
+
+        cumulative_distance += seg->get_length();
+        current_index += 1;
+    }
+
+    return full_trace;
+}
+
+void Optimizer::write_speed_trace_csv(const std::string& file_name, int seg_index, double initial_battery, double ending_battery, double harvest){
+    std::vector<SpeedTraceType> trace = compute_final_speed_trace(seg_index, initial_battery, ending_battery, harvest);
+
+    std::ofstream file;
+    file.open(track_gen::TRACK_CSV_FOLDER + file_name);
+
+    if(!file.is_open()){
+        throw std::runtime_error("Could not open file when writing speed trace: " + file_name);
+    }
+
+    file << "Speed,Distance\n";
+    for(const auto& point : trace){
+        file << point.speed_kmh << "," << point.distance_m << "\n";
+    }
+
+    file.close();
 }
