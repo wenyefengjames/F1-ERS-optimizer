@@ -63,44 +63,6 @@ test/               GoogleTest suite
 benchmark/          Google Benchmark suite
 ```
 
-## Building
-
-Requires CMake 3.16+, a C++20 compiler (developed against GCC 14.2.0 via MSYS2 on Windows), and Ninja.
-
-```
-cmake -B build -G Ninja
-cmake --build build
-```
-
-For anything performance-sensitive - benchmarking, comparing before/after an optimization - build in Release mode instead. An unoptimized build can be an order of magnitude slower and isn't representative of real performance:
-
-```
-cmake -B build-release -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build-release
-```
-
-Run the optimizer (interactive - prompts for mode, MOM, and starting/ending battery/harvest):
-```
-./build/bin/ERSOptimizer
-```
-
-Run the test suite:
-```
-./build/bin/unit_tests
-```
-
-Run the benchmark suite (from a Release build, to get meaningful numbers):
-```
-./build-release/bin/benchmarks
-```
-
-AddressSanitizer + UndefinedBehaviorSanitizer builds are available via `-DENABLE_SANITIZERS=ON`.
-
-The Python side (FastF1 telemetry, plotting) is separate from the CMake build:
-```
-python src/python-files/plot-data-test.py
-```
-This plots the optimizer's exported strategy (`data/track-data/battery_deployment_silverstone.csv`, written by a completed optimizer run) against the real telemetry line pulled live from FastF1.
 
 ## Testing and tooling
 
