@@ -24,3 +24,6 @@ data/
 
 # Images output that shows speed trace
 *.png
+
+# Latex report
+*.tex
